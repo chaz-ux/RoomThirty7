@@ -1,117 +1,108 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getRecentVideos, formatVideoDate, YouTubeVideo } from '../services/youtube';
 import './Support.css';
 
 const Support: React.FC = () => {
-    const [videos, setVideos] = React.useState<YouTubeVideo[]>([]);
-    const [loadingVideos, setLoadingVideos] = React.useState(true);
+  const [videos, setVideos] = useState<YouTubeVideo[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchVideos = async () => {
-            try {
-                const recentVideos = await getRecentVideos(6);
-                setVideos(recentVideos);
-            } catch {
-                setVideos([]);
-            } finally {
-                setLoadingVideos(false);
-            }
-        };
-        fetchVideos();
-    }, []);
+  useEffect(() => {
+    getRecentVideos(6)
+      .then(v => setVideos(v))
+      .catch(() => setVideos([]))
+      .finally(() => setLoading(false));
+  }, []);
 
-    return (
-        <div className="support-container">
-            <div className="support-card glow-magenta">
+  return (
+    <div className="support-wrap">
+      {/* Back */}
+      <Link to="/" className="support-back">Back to Hub</Link>
 
-                <h1 className="support-title">Welcome to ROOM THIRTY7! 🎲</h1>
+      {/* Header */}
+      <header className="support-header">
+        <span className="support-eyebrow">Room Thirty7</span>
+        <h1 className="support-title">
+          Keep the <span>chaos</span> alive. 🎲
+        </h1>
+        <p className="support-intro">
+          Your hub for chaotic party games, ridiculous challenges, and top-tier group banter.
+          We built this so you can play the exact games we play — but{' '}
+          <strong>the real madness happens on camera.</strong> Come watch.
+        </p>
+      </header>
 
-                <p className="support-text">
-                    Your ultimate hub for chaotic party games, hilarious challenges, and top-tier group banter.
-                    We built this app so you can play the exact games we do, but <strong>the real madness happens on camera</strong>.
-                </p>
-
-                <p className="support-text">
-                    Whether we're exposing each other in Personality Tests or fighting for our lives in 30-Second Categories,
-                    you don't want to miss it. Grab your friends, play along, and come watch the chaos unfold! 🚀
-                </p>
-
-                {/* Support Till Number - More Visible */}
-                <div className="till-section">
-                    <div className="till-icon">💝</div>
-                    <h2 className="till-heading">Support Us</h2>
-                    <p className="till-label">Till Number</p>
-                    <div className="till-number">4249130</div>
-                    <p className="till-description">Send us a tip or contribution to keep the chaos alive!</p>
-                </div>
-
-                <div className="action-box">
-                    <a
-                        href="https://www.youtube.com/@ROOMTHIRTY7"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="yt-link"
-                    >
-                        ▶ Subscribe on YouTube
-                    </a>
-                    <p className="subtext">Subscribe and hit the bell!</p>
-                </div>
-
-                {/* YouTube Latest Videos */}
-                <div className="youtube-section">
-                    <h2 className="section-heading">Latest Videos</h2>
-                    {loadingVideos ? (
-                        <div className="video-grid">
-                            {[...Array(6)].map((_, i) => (
-                                <div key={i} className="video-card skeleton-card">
-                                    <div className="skeleton-thumb skeleton"></div>
-                                    <div className="skeleton-title skeleton"></div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : videos.length > 0 ? (
-                        <div className="video-grid">
-                            {videos.map(video => (
-                                <a
-                                    key={video.id}
-                                    href={`https://youtube.com/watch?v=${video.id}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="video-card"
-                                >
-                                    <div className="thumbnail-wrapper">
-                                        <img
-                                            src={video.thumbnailUrl}
-                                            alt={video.title}
-                                            loading="lazy"
-                                        />
-                                        <div className="play-overlay">▶</div>
-                                    </div>
-                                    <h4 className="video-title">{video.title}</h4>
-                                    <span className="video-date">{formatVideoDate(video.publishedAt)}</span>
-                                </a>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="no-videos-wrapper">
-                            <p className="no-videos">No videos found.</p>
-                            <a
-                                href="https://www.youtube.com/@ROOMTHIRTY7"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="visit-channel-btn"
-                            >
-                                ▶ Visit Our Channel
-                            </a>
-                        </div>
-                    )}
-                </div>
-
-                <a href="/" className="back-link">&laquo; Back to Hub</a>
-            </div>
+      {/* M-Pesa Till */}
+      <div className="till-card">
+        <span className="till-icon">💝</span>
+        <div className="till-body">
+          <div className="till-label">M-Pesa Till Number</div>
+          <div className="till-number">4942130</div>
+          <div className="till-sub">Send a tip to keep the servers alive. Every shilling counts!</div>
         </div>
-    );
+      </div>
+
+      {/* YouTube CTA */}
+      <a
+        href="https://www.youtube.com/@ROOMTHIRTY7"
+        target="_blank"
+        rel="noreferrer"
+        className="yt-cta"
+      >
+        <span className="yt-cta-icon">▶</span>
+        <div className="yt-cta-text">
+          <div className="yt-cta-title">Subscribe on YouTube</div>
+          <div className="yt-cta-sub">Hit the bell. Watch the chaos unfold.</div>
+        </div>
+        <span className="yt-cta-arrow">→</span>
+      </a>
+
+      {/* Latest videos */}
+      <h2 className="support-section-title">Latest Videos</h2>
+
+      <div className="video-grid">
+        {loading ? (
+          [...Array(6)].map((_, i) => (
+            <div key={i} className="skeleton-card">
+              <div className="skeleton-thumb skeleton" />
+              <div className="skeleton-text skeleton" />
+            </div>
+          ))
+        ) : videos.length > 0 ? (
+          videos.map(v => (
+            <a
+              key={v.id}
+              href={`https://youtube.com/watch?v=${v.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="video-card"
+            >
+              <div className="video-thumb">
+                <img src={v.thumbnailUrl} alt={v.title} loading="lazy" />
+                <div className="video-play">▶</div>
+              </div>
+              <div className="video-info">
+                <h4 className="video-title">{v.title}</h4>
+                <span className="video-date">{formatVideoDate(v.publishedAt)}</span>
+              </div>
+            </a>
+          ))
+        ) : (
+          <div className="no-videos">
+            <p>No videos found.</p>
+            <a
+              href="https://www.youtube.com/@ROOMTHIRTY7"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-accent"
+            >
+              ▶ Visit Channel
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default Support;

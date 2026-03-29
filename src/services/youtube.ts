@@ -1,112 +1,96 @@
+// ─────────────────────────────────────────────────────────────
+//  src/services/youtube.ts
+//  Fetches ROOM THIRTY7 videos via YouTube RSS + allorigins proxy
+//  No API key. No quota. Auto-updates when you post.
+// ─────────────────────────────────────────────────────────────
+
+const CHANNEL_ID = 'UCo_ixIs_cPbMxr4y4GR4QNA';
+const FEED_URL   = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`;
+const PROXY_URL  = `https://api.allorigins.win/get?url=${encodeURIComponent(FEED_URL)}`;
+
+// How long to cache in memory (ms) — 30 minutes
+const CACHE_TTL = 30 * 60 * 1000;
+
 export interface YouTubeVideo {
-    id: string;
-    title: string;
-    thumbnailUrl: string;
-    publishedAt: string;
+  id:           string;
+  title:        string;
+  thumbnailUrl: string;
+  publishedAt:  string;
+  channelTitle: string;
 }
 
-// Channel ID for ROOM THIRTY7
-const YOUTUBE_RSS = 'https://www.youtube.com/feeds/videos.xml?channel_id=UC7fhj_j3y6ZNMD5XDqmZ_Lg';
+// In-memory cache so we don't hammer the proxy on every render
+let _cache: { videos: YouTubeVideo[]; fetchedAt: number } | null = null;
 
-// Fallback placeholder videos when API fails
-const PLACEHOLDER_VIDEOS: YouTubeVideo[] = [
-    {
-        id: 'placeholder1',
-        title: '🎮 New Videos Coming Soon!',
-        thumbnailUrl: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
-        publishedAt: new Date().toISOString()
-    },
-    {
-        id: 'placeholder2',
-        title: '🎉 Join Our Community!',
-        thumbnailUrl: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
-        publishedAt: new Date().toISOString()
-    },
-    {
-        id: 'placeholder3',
-        title: '🔥 Support the Channel!',
-        thumbnailUrl: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
-        publishedAt: new Date().toISOString()
+// ── Main fetch function ───────────────────────────────────────
+export async function getRecentVideos(count = 6): Promise<YouTubeVideo[]> {
+  // Return cache if still fresh
+  if (_cache && Date.now() - _cache.fetchedAt < CACHE_TTL) {
+    return _cache.videos.slice(0, count);
+  }
+
+  const response = await fetch(PROXY_URL);
+  if (!response.ok) throw new Error(`Proxy error: ${response.status}`);
+
+  const json = await response.json();
+
+  // allorigins wraps the response in { contents: "..." }
+  const xmlText: string = json.contents;
+  if (!xmlText) throw new Error('Empty response from proxy');
+
+  const videos = parseRSSFeed(xmlText);
+
+  _cache = { videos, fetchedAt: Date.now() };
+  return videos.slice(0, count);
+}
+
+// ── RSS XML parser ────────────────────────────────────────────
+function parseRSSFeed(xml: string): YouTubeVideo[] {
+  const parser  = new DOMParser();
+  const doc     = parser.parseFromString(xml, 'application/xml');
+  const entries = Array.from(doc.querySelectorAll('entry'));
+
+  return entries.map(entry => {
+    // Video ID lives in <yt:videoId> or the <id> tag
+    const videoIdEl = entry.querySelector('videoId');
+    const idEl      = entry.querySelector('id');
+
+    let id = videoIdEl?.textContent ?? '';
+    if (!id && idEl?.textContent) {
+      // Format: yt:video:VIDEOID
+      id = idEl.textContent.replace('yt:video:', '');
     }
-];
 
-export const getRecentVideos = async (maxResults: number = 6): Promise<YouTubeVideo[]> => {
-    try {
-        // Try rss2json service first
-        const url = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(YOUTUBE_RSS)}&count=${maxResults}`;
-        const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const title       = entry.querySelector('title')?.textContent ?? 'Untitled';
+    const publishedAt = entry.querySelector('published')?.textContent ?? '';
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    // YouTube RSS includes <media:group><media:thumbnail url="..." /></media:group>
+    const thumbnail = entry.querySelector('thumbnail');
+    const thumbnailUrl = thumbnail?.getAttribute('url')
+      ?? `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
 
-        const data = await response.json();
+    const channelTitle = entry.querySelector('author name')?.textContent ?? 'ROOM THIRTY7';
 
-        if (data.status === 'ok' && Array.isArray(data.items) && data.items.length > 0) {
-            return data.items.slice(0, maxResults).map((item: {
-                guid?: string;
-                title?: string;
-                thumbnail?: string;
-                pubDate?: string;
-                link?: string;
-            }) => ({
-                id: item.guid?.split('/').pop() || item.link?.split('/').pop() || '',
-                title: item.title || 'Untitled',
-                thumbnailUrl: item.thumbnail || `https://img.youtube.com/vi/${item.guid?.split('/').pop()}/hqdefault.jpg`,
-                publishedAt: item.pubDate || ''
-            })).filter((v: YouTubeVideo) => v.id);
-        }
+    return { id, title, thumbnailUrl, publishedAt, channelTitle };
+  }).filter(v => v.id); // drop any entries with no ID
+}
 
-        // Fallback: try parsing RSS directly via allorigins proxy
-        try {
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(YOUTUBE_RSS)}`;
-            const proxyResponse = await fetch(proxyUrl, { signal: AbortSignal.timeout(5000) });
+// ── Date formatter ────────────────────────────────────────────
+export function formatVideoDate(dateString: string): string {
+  if (!dateString) return '';
 
-            if (!proxyResponse.ok) throw new Error(`Proxy failed: ${proxyResponse.status}`);
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
 
-            const rssText = await proxyResponse.text();
-            const parser = new DOMParser();
-            const xml = parser.parseFromString(rssText, 'application/xml');
+  const now   = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-            const entries = xml.querySelectorAll('entry');
-            const videos: YouTubeVideo[] = [];
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7)  return `${diffDays} days ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
 
-            entries.forEach((entry) => {
-                const id = entry.querySelector('id')?.textContent?.split('/').pop() || '';
-                const title = entry.querySelector('title')?.textContent || '';
-                const published = entry.querySelector('published')?.textContent || '';
-                const thumbnail = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-
-                if (id && videos.length < maxResults) {
-                    videos.push({ id, title, thumbnailUrl: thumbnail, publishedAt: published });
-                }
-            });
-
-            if (videos.length > 0) return videos;
-        } catch {
-            console.warn('RSS proxy also failed, using placeholders');
-        }
-
-        // If both APIs fail, return placeholder videos
-        return PLACEHOLDER_VIDEOS.slice(0, maxResults);
-    } catch (error) {
-        console.warn('YouTube feed unavailable, using placeholders:', error);
-        return PLACEHOLDER_VIDEOS.slice(0, maxResults);
-    }
-};
-
-export const formatVideoDate = (dateString: string): string => {
-    try {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) return 'Today';
-        if (diffDays === 1) return 'Yesterday';
-        if (diffDays < 7) return `${diffDays} days ago`;
-        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-        if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
-        return `${Math.floor(diffDays / 365)} years ago`;
-    } catch {
-        return '';
-    }
-};
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}

@@ -3,172 +3,218 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useMultiplayer } from '../context/MultiplayerContext';
 import './Lobby.css';
 
+// Game meta for pill display
+const GAME_META: Record<string, { emoji: string; label: string }> = {
+  mafia:      { emoji: '🎭', label: 'Mafia' },
+  movie:      { emoji: '🍿', label: 'Guess the Movie' },
+  imposter:   { emoji: '🕵️', label: 'Imposter' },
+  '30seconds':{ emoji: '⏱️', label: '30 Seconds' },
+  charades:   { emoji: '🎬', label: 'Charades' },
+  hangman:    { emoji: '⚡', label: 'Hangman' },
+};
+
+type SetupState = 'MODE_SELECT' | 'LOCAL_SETUP' | 'ONLINE_SETUP' | 'ONLINE_HOST' | 'ONLINE_JOIN';
+
 const Lobby: React.FC = () => {
-    const [searchParams] = useSearchParams();
-    const gameId = searchParams.get('game');
-    const navigate = useNavigate();
-    
-    const { roomCode, players, setMode, createOnlineRoom, joinOnlineRoom, addLocalPlayer, removeLocalPlayer, setSharedState, sharedState } = useMultiplayer();
-    
-    const [setupState, setSetupState] = useState<'MODE_SELECT' | 'LOCAL_SETUP' | 'ONLINE_SETUP' | 'ONLINE_HOST' | 'ONLINE_JOIN'>('MODE_SELECT');
-    
-    const [playerName, setPlayerName] = useState('');
-    const [joinCode, setJoinCode] = useState('');
-    const [errorMsg, setErrorMsg] = useState('');
+  const [searchParams] = useSearchParams();
+  const gameId = searchParams.get('game') ?? '';
+  const navigate = useNavigate();
 
-    // Monitor for host starting the game
-    useEffect(() => {
-        if (sharedState?.gameStarted && gameId) {
-            navigate(`/${gameId}`);
-        }
-    }, [sharedState?.gameStarted, navigate, gameId]);
+  const {
+    roomCode, players, setMode,
+    createOnlineRoom, joinOnlineRoom,
+    addLocalPlayer, removeLocalPlayer,
+    setSharedState, sharedState,
+  } = useMultiplayer();
 
-    const handleLocalStart = () => {
-        if (players.length < 1) {
-            setErrorMsg("Need at least 1 player!");
-            return;
-        }
-        navigate(`/${gameId}`);
-    };
+  const [setupState, setSetupState] = useState<SetupState>('MODE_SELECT');
+  const [playerName, setPlayerName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
-    const handleHostStart = async () => {
-        if (players.length < 1) {
-            setErrorMsg("Need at least 1 player!");
-            return;
-        }
-        await setSharedState({ gameStarted: true });
-        navigate(`/${gameId}`);
-    };
+  const meta = GAME_META[gameId] ?? { emoji: '🎮', label: gameId.toUpperCase() };
 
-    const handleCreateRoom = async () => {
-        if (!playerName) { setErrorMsg("Please enter your name"); return; }
-        try {
-            await createOnlineRoom(playerName);
-            setSetupState('ONLINE_HOST');
-            setErrorMsg('');
-        } catch (e: any) {
-            setErrorMsg(e.message || "Failed to create room.");
-        }
-    };
+  useEffect(() => {
+    if (sharedState?.gameStarted && gameId) navigate(`/${gameId}`);
+  }, [sharedState?.gameStarted, navigate, gameId]);
 
-    const handleJoinRoom = async () => {
-        if (!playerName || !joinCode) { setErrorMsg("Please enter name and room code"); return; }
-        try {
-            const success = await joinOnlineRoom(joinCode.toUpperCase(), playerName);
-            if (success) {
-                setSetupState('ONLINE_JOIN');
-                setErrorMsg('');
-            } else {
-                setErrorMsg("Room not found!");
-            }
-        } catch (e: any) {
-            setErrorMsg(e.message || "Failed to join room.");
-        }
-    };
+  const addPlayer = () => {
+    if (!playerName.trim()) return;
+    addLocalPlayer(playerName.trim());
+    setPlayerName('');
+  };
 
-    const renderModeSelect = () => (
-        <div className="lobby-panel mode-select fade-in">
-            <h2>Select Gameplay Mode</h2>
-            <div className="mode-options">
-                <button className="mode-btn btn-primary" onClick={() => { setMode('local'); setSetupState('LOCAL_SETUP'); }}>
-                    🎮 Local Pass & Play
-                    <small>One device, passed around</small>
-                </button>
-                <button className="mode-btn btn-secondary" onClick={() => setSetupState('ONLINE_SETUP')}>
-                    🌐 Online Multiplayer
-                    <small>Everyone on their own phone</small>
-                </button>
-            </div>
-            <button className="back-link" onClick={() => navigate('/')}>&laquo; Back to Hub</button>
+  const handleLocalStart = () => {
+    if (players.length < 1) { setErrorMsg('Need at least 1 player!'); return; }
+    navigate(`/${gameId}`);
+  };
+
+  const handleHostStart = async () => {
+    if (players.length < 1) { setErrorMsg('Need at least 1 player!'); return; }
+    await setSharedState({ gameStarted: true });
+    navigate(`/${gameId}`);
+  };
+
+  const handleCreateRoom = async () => {
+    if (!playerName.trim()) { setErrorMsg('Enter your name first'); return; }
+    try {
+      await createOnlineRoom(playerName.trim());
+      setSetupState('ONLINE_HOST');
+      setErrorMsg('');
+    } catch (e: any) { setErrorMsg(e.message ?? 'Failed to create room'); }
+  };
+
+  const handleJoinRoom = async () => {
+    if (!playerName.trim() || !joinCode.trim()) { setErrorMsg('Enter name and room code'); return; }
+    try {
+      const ok = await joinOnlineRoom(joinCode.toUpperCase(), playerName.trim());
+      if (ok) { setSetupState('ONLINE_JOIN'); setErrorMsg(''); }
+      else setErrorMsg('Room not found!');
+    } catch (e: any) { setErrorMsg(e.message ?? 'Failed to join room'); }
+  };
+
+  /* ── Renders ──────────────────────────── */
+  const ModeSelect = () => (
+    <>
+      <h2>How are you playing?</h2>
+      <div className="mode-cards">
+        <button className="mode-card" onClick={() => { setMode('local'); setSetupState('LOCAL_SETUP'); }}>
+          <span className="mode-card-icon">🎮</span>
+          <div className="mode-card-text">
+            <span className="mode-card-title">Local Pass & Play</span>
+            <span className="mode-card-sub">One device, passed around the room</span>
+          </div>
+        </button>
+        <button className="mode-card" onClick={() => setSetupState('ONLINE_SETUP')}>
+          <span className="mode-card-icon">🌐</span>
+          <div className="mode-card-text">
+            <span className="mode-card-title">Online Multiplayer</span>
+            <span className="mode-card-sub">Everyone on their own phone</span>
+          </div>
+        </button>
+      </div>
+      <button className="back-link" onClick={() => navigate('/')}>← Back to Hub</button>
+    </>
+  );
+
+  const LocalSetup = () => (
+    <>
+      <h2>Add Players</h2>
+      <div className="input-row">
+        <input
+          type="text"
+          placeholder="Player name..."
+          value={playerName}
+          onChange={e => setPlayerName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addPlayer()}
+        />
+        <button className="btn-add" onClick={addPlayer}>Add</button>
+      </div>
+      <div className="players-list">
+        {players.map(p => (
+          <div key={p.id} className="player-chip">
+            {p.name}
+            <button className="player-chip-remove" onClick={() => removeLocalPlayer(p.id)}>×</button>
+          </div>
+        ))}
+      </div>
+      {errorMsg && <div className="error-msg">{errorMsg}</div>}
+      <button className="btn btn-primary w-full" onClick={handleLocalStart}>Start Game →</button>
+      <button className="back-link" onClick={() => { setMode(null); setSetupState('MODE_SELECT'); }}>← Change mode</button>
+    </>
+  );
+
+  const OnlineSetup = () => (
+    <>
+      <h2>Online Multiplayer</h2>
+      <input
+        type="text"
+        placeholder="Your name"
+        value={playerName}
+        onChange={e => setPlayerName(e.target.value)}
+      />
+      {errorMsg && <div className="error-msg">{errorMsg}</div>}
+      <div className="online-split">
+        <div className="online-box">
+          <h3>Host</h3>
+          <button className="btn btn-primary" onClick={handleCreateRoom}>Create Room</button>
         </div>
-    );
-
-    const renderLocalSetup = () => (
-        <div className="lobby-panel local-setup fade-in">
-            <h2>Local Game Setup</h2>
-            <div className="input-group">
-                <input 
-                    type="text" 
-                    placeholder="Enter player name..." 
-                    value={playerName} 
-                    onChange={e => setPlayerName(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && playerName) { addLocalPlayer(playerName); setPlayerName(''); } }}
-                />
-                <button className="btn-add" onClick={() => { if(playerName){ addLocalPlayer(playerName); setPlayerName('');} }}>Add</button>
-            </div>
-            <div className="players-list">
-                {players.map(p => (
-                    <div key={p.id} className="player-tag">
-                        {p.name} <span className="remove" onClick={() => removeLocalPlayer(p.id)}>&times;</span>
-                    </div>
-                ))}
-            </div>
-            {errorMsg && <p className="error-text">{errorMsg}</p>}
-            <button className="btn-primary start-btn" onClick={handleLocalStart}>START GAME</button>
-            <button className="back-link" onClick={() => { setMode(null); setSetupState('MODE_SELECT'); }}>&laquo; Change Mode</button>
+        <div className="online-box">
+          <h3>Join</h3>
+          <input
+            type="text"
+            className="code-input"
+            placeholder="CODE"
+            maxLength={4}
+            value={joinCode}
+            onChange={e => setJoinCode(e.target.value)}
+          />
+          <button className="btn btn-outline" onClick={handleJoinRoom}>Join</button>
         </div>
-    );
+      </div>
+      <button className="back-link" onClick={() => setSetupState('MODE_SELECT')}>← Change mode</button>
+    </>
+  );
 
-    const renderOnlineSetup = () => (
-        <div className="lobby-panel online-setup fade-in">
-            <h2>Online Multiplayer</h2>
-            {errorMsg && <p className="error-text">{errorMsg}</p>}
-            <div className="input-group column">
-                <input type="text" placeholder="Your Name" value={playerName} onChange={e => setPlayerName(e.target.value)} />
-            </div>
-            <div className="split-actions">
-                <div className="host-section">
-                    <h3>Host a Game</h3>
-                    <button className="btn-primary" onClick={handleCreateRoom}>Create Room</button>
-                </div>
-                <div className="join-section">
-                    <h3>Join a Game</h3>
-                    <input type="text" placeholder="4-Digit Code" maxLength={4} value={joinCode} onChange={e => setJoinCode(e.target.value)} />
-                    <button className="btn-secondary" onClick={handleJoinRoom}>Join Room</button>
-                </div>
-            </div>
-            <button className="back-link" onClick={() => setSetupState('MODE_SELECT')}>&laquo; Change Mode</button>
-        </div>
-    );
+  const OnlineHost = () => (
+    <>
+      <div className="room-code-display">
+        <div className="room-code-label">Room Code</div>
+        <div className="room-code">{roomCode}</div>
+        <div className="room-code-hint">Share this with your friends</div>
+      </div>
+      <div className="players-list">
+        {players.map(p => (
+          <div key={p.id} className="player-chip">
+            {p.isHost && <span className="player-chip-host">👑</span>}
+            {p.name}
+          </div>
+        ))}
+      </div>
+      {errorMsg && <div className="error-msg">{errorMsg}</div>}
+      <button className="btn btn-primary w-full" onClick={handleHostStart}>Start Game →</button>
+    </>
+  );
 
-    const renderOnlineHost = () => (
-        <div className="lobby-panel online-host fade-in">
-            <h2>Room Code: <span className="highlight-code">{roomCode}</span></h2>
-            <p>Tell your friends to join using this code.</p>
-            <div className="players-list">
-                {players.map(p => (
-                    <div key={p.id} className="player-tag">{p.name} {p.isHost && '👑'}</div>
-                ))}
-            </div>
-            {errorMsg && <p className="error-text">{errorMsg}</p>}
-            <button className="btn-primary start-btn" onClick={handleHostStart}>START GAME</button>
-        </div>
-    );
+  const OnlineJoin = () => (
+    <>
+      <div className="room-code-display">
+        <div className="room-code-label">Joined Room</div>
+        <div className="room-code">{roomCode}</div>
+      </div>
+      <div className="waiting-pulse">
+        Waiting for host
+        <span className="waiting-dots">
+          <span /><span /><span />
+        </span>
+      </div>
+      <div className="players-list">
+        {players.map(p => (
+          <div key={p.id} className="player-chip">
+            {p.isHost && <span className="player-chip-host">👑</span>}
+            {p.name}
+          </div>
+        ))}
+      </div>
+    </>
+  );
 
-    const renderOnlineJoin = () => (
-        <div className="lobby-panel online-join fade-in">
-            <h2>Joined Room: <span className="highlight-code">{roomCode}</span></h2>
-            <p className="waiting-text blink">Waiting for Host to start...</p>
-            <div className="players-list">
-                {players.map(p => (
-                    <div key={p.id} className="player-tag">{p.name} {p.isHost && '👑'}</div>
-                ))}
-            </div>
-        </div>
-    );
+  return (
+    <div className="lobby-wrap">
+      <div className="lobby-game-pill">
+        <span className="lobby-game-pill-emoji">{meta.emoji}</span>
+        {meta.label}
+      </div>
 
-    return (
-        <div className="lobby-container container">
-            <h1 className="game-title glow-blue">Configuring: {gameId?.toUpperCase()}</h1>
-            
-            {setupState === 'MODE_SELECT' && renderModeSelect()}
-            {setupState === 'LOCAL_SETUP' && renderLocalSetup()}
-            {setupState === 'ONLINE_SETUP' && renderOnlineSetup()}
-            {setupState === 'ONLINE_HOST' && renderOnlineHost()}
-            {setupState === 'ONLINE_JOIN' && renderOnlineJoin()}
-
-        </div>
-    );
+      <div className="lobby-panel">
+        {setupState === 'MODE_SELECT'  && <ModeSelect />}
+        {setupState === 'LOCAL_SETUP'  && <LocalSetup />}
+        {setupState === 'ONLINE_SETUP' && <OnlineSetup />}
+        {setupState === 'ONLINE_HOST'  && <OnlineHost />}
+        {setupState === 'ONLINE_JOIN'  && <OnlineJoin />}
+      </div>
+    </div>
+  );
 };
 
 export default Lobby;

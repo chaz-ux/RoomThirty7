@@ -27,3 +27,6 @@ dist-ssr
 
 # Build logs
 build_log.txt
+
+# Firebase local files (already probably there, confirm)
+.firebase/
