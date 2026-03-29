@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import NeonLogo from '../components/NeonLogo';
 import './Home.css';
 
 interface Game {
@@ -13,12 +14,12 @@ interface Game {
 }
 
 const GAMES: Game[] = [
-  { title: 'Mafia',          desc: 'Deceive your friends or find the truth. Trust no one.',      link: '/lobby?game=mafia',      emoji: '🎭', c1: '#ff1744', c2: '#d500f9' },
-  { title: 'Guess the Movie',desc: 'Decode the emoji clues before the clock runs out.',           link: '/lobby?game=movie',      emoji: '🍿', c1: '#2979ff', c2: '#00e5ff' },
-  { title: 'Imposter',       desc: 'Hunt the imposter or survive as one. Chaos guaranteed.',     link: '/lobby?game=imposter',   emoji: '🕵️', c1: '#ff6d00', c2: '#ffd600' },
-  { title: '30 Seconds',     desc: '5 words. 30 seconds. Talk fast or lose everything.',         link: '/lobby?game=30seconds',  emoji: '⏱️', c1: '#00c853', c2: '#00e5ff' },
-  { title: 'Charades',       desc: 'Act it out — no sounds, no words, just pure chaos.',        link: '/lobby?game=charades',   emoji: '🎬', c1: '#aa00ff', c2: '#ff1744' },
-  { title: 'Hangman',        desc: 'One letter at a time. Don\'t let the stick figure die.',    link: '/lobby?game=hangman',    emoji: '⚡', c1: '#ffd600', c2: '#ff6d00' },
+  { title: 'Mafia',           desc: 'Deceive your friends or find the truth. Trust no one.',    link: '/lobby?game=mafia',      emoji: '🎭', c1: '#ff1744', c2: '#d500f9' },
+  { title: 'Guess the Movie', desc: 'Decode the emoji clues before the clock runs out.',         link: '/lobby?game=movie',      emoji: '🍿', c1: '#2979ff', c2: '#00e5ff' },
+  { title: 'Imposter',        desc: 'Hunt the imposter or survive as one. Chaos guaranteed.',   link: '/lobby?game=imposter',   emoji: '🕵️', c1: '#ff6d00', c2: '#ffd600' },
+  { title: '30 Seconds',      desc: '5 words. 30 seconds. Talk fast or lose everything.',       link: '/lobby?game=30seconds',  emoji: '⏱️', c1: '#00c853', c2: '#00e5ff' },
+  { title: 'Charades',        desc: 'Act it out — no sounds, no words, just pure chaos.',      link: '/lobby?game=charades',   emoji: '🎬', c1: '#aa00ff', c2: '#ff1744' },
+  { title: 'Hangman',         desc: "One letter at a time. Don't let the stick figure die.",   link: '/lobby?game=hangman',    emoji: '⚡', c1: '#ffd600', c2: '#ff6d00' },
 ];
 
 const GameCard: React.FC<Game> = ({ title, desc, link, emoji, c1, c2 }) => (
@@ -47,7 +48,7 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-wrap">
-      {/* Ambient blobs */}
+      {/* Ambient blobs — visible in light mode */}
       <div className="blob blob-1" />
       <div className="blob blob-2" />
       <div className="blob blob-3" />
@@ -59,16 +60,8 @@ const Home: React.FC = () => {
         </button>
       </div>
 
-      {/* Hero */}
-      <header className="home-hero">
-        <div className="home-logo">
-          <span className="logo-r37">ROOM 37</span>
-          <span className="logo-tag">Party Games HQ</span>
-        </div>
-        <p className="home-tagline">
-          No boards. No pieces. Just your friends, your phone, and maximum chaos.
-        </p>
-      </header>
+      {/* Neon hero — always dark internally */}
+      <NeonLogo />
 
       {/* Games */}
       <p className="home-section-label">Pick a game</p>
