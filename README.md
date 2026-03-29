@@ -3,10 +3,12 @@
 <div align="center">
 
 ```
- ____  ___  ___  __  __    ____  ____
-(  _ \(  _)(  _)(  \/  )  (__  )(__  )
- )   / ) _)  ) _) )    (   / _/  / _/
-(_)\_)(___)(___)(\_/\_/  (____)(____)
+_____   ____   ____  __  __   _______ _    _ _____ _____ _______ __     __ ______ 
+ |  __ \ / __ \ / __ \|  \/  | |__   __| |  | |_   _|  __ \__   __\ \   / /|____  |
+ | |__) | |  | | |  | | \  / |    | |  | |__| | | | | |__) | | |   \ \_/ /     / / 
+ |  _  /| |  | | |  | | |\/| |    | |  |  __  | | | |  _  /  | |    \   /     / /  
+ | | \ \| |__| | |__| | |  | |    | |  | |  | |_| |_| | \ \  | |     | |     / /   
+ |_|  \_\\____/ \____/|_|  |_|    |_|  |_|  |_|_____|_|  \_\ |_|     |_|    /_/
 ```
 
 [![typing](https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=700&size=16&pause=1200&color=FF1744&center=true&vCenter=true&width=600&lines=No+boards.+No+pieces.+Just+chaos.;6+games.+One+room.+Maximum+damage.;Play+at+roomthirty7-baefb.web.app)](https://git.io/typing-svg)
