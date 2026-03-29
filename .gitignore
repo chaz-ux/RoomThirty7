@@ -22,9 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Claude Code
-.claude/
-
-# Build logs
-build_log.txt
