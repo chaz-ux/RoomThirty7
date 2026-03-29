@@ -1,0 +1,724 @@
+/* =========================================
+   MAFIA GAME — ROOM 37
+   Dramatic dark theme with shattering effects
+   ========================================= */
+
+:root {
+    --color-bg-night: #0a0612;
+    --color-bg-day: #1a1209;
+    --color-purple-deep: #1a0f2e;
+    --color-red-blood: #ff2244;
+    --color-red-glow: rgba(255, 34, 68, 0.6);
+    --color-blue-moon: #4488ff;
+    --color-blue-glow: rgba(68, 136, 255, 0.5);
+    --color-yellow-sun: #ffcc00;
+    --color-yellow-glow: rgba(255, 204, 0, 0.5);
+    --color-green-save: #00ff88;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: rgba(255, 255, 255, 0.6);
+    --color-text-dim: rgba(255, 255, 255, 0.3);
+    --radius-sm: 8px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-full: 9999px;
+}
+
+/* =========================================
+   BASE CONTAINER
+   ========================================= */
+.mafia-container {
+    height: 100dvh;
+    width: 100vw;
+    background: radial-gradient(ellipse at center, var(--color-purple-deep) 0%, var(--color-bg-night) 70%);
+    color: var(--color-text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+/* Phase backgrounds */
+.mafia-container.state-night_reveal,
+.mafia-container.state-mafia_know { background: radial-gradient(ellipse at top, #0d0820 0%, #050208 100%); }
+.mafia-container.state-day_discuss { background: radial-gradient(ellipse at center, #1a1209 0%, #2a1a08 50%, #1a0f05 100%); }
+.mafia-container.state-vote { background: radial-gradient(ellipse at center, #2a1509 0%, #1a0a04 100%); }
+.mafia-container.state-reveal { background: radial-gradient(ellipse at center, #200a1a 0%, #0a0410 100%); }
+.mafia-container.state-game_over { background: radial-gradient(ellipse at center, #0a0612 0%, #000 100%); }
+
+@media (max-width: 480px) {
+    .mafia-container { padding: 0.5rem; }
+}
+
+/* =========================================
+   LAYERS
+   ========================================= */
+.static-layer {
+    z-index: 10;
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+/* =========================================
+   GRAVESTONES - Falling and shattering
+   ========================================= */
+.graveyard-layer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
+}
+
+.gravestone {
+    position: absolute;
+    bottom: -100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    animation: tombstoneFall 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards, tombstoneShake 0.5s ease 1.5s;
+}
+
+@keyframes tombstoneFall {
+    0% { transform: translateY(-120vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(0) rotate(0deg); opacity: 1; }
+}
+
+@keyframes tombstoneShake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-10px) rotate(-5deg); }
+    40% { transform: translateX(10px) rotate(5deg); }
+    60% { transform: translateX(-5px) rotate(-2deg); }
+    80% { transform: translateX(5px) rotate(2deg); }
+}
+
+.gravestone.mafia-stone {
+    background: linear-gradient(135deg, rgba(255, 34, 68, 0.4), rgba(150, 0, 30, 0.5));
+    border: 2px solid var(--color-red-blood);
+    box-shadow: 0 0 30px rgba(255, 34, 68, 0.4);
+}
+
+.gravestone.villager-stone {
+    background: linear-gradient(135deg, rgba(255, 204, 0, 0.3), rgba(180, 140, 0, 0.4));
+    border: 2px solid var(--color-yellow-sun);
+    box-shadow: 0 0 20px rgba(255, 204, 0, 0.3);
+}
+
+.tombstone-icon { font-size: 1.5rem; }
+.tombstone-name { font-size: 1.1rem; font-weight: 800; text-transform: uppercase; }
+.tombstone-role { font-size: 0.7rem; opacity: 0.7; }
+
+/* =========================================
+   SHATTER EFFECT
+   ========================================= */
+.shatter-effect {
+    display: flex;
+    gap: 8px;
+    animation: shatter 0.8s ease forwards;
+}
+
+@keyframes shatter {
+    0% { transform: scale(0); opacity: 1; }
+    50% { transform: scale(1.5) rotate(10deg); opacity: 1; }
+    100% { transform: scale(2) rotate(-20deg) translateY(-20px); opacity: 0; }
+}
+
+.shatter-piece {
+    font-size: 2rem;
+    animation: pieceFly 1s ease forwards;
+}
+
+@keyframes pieceFly {
+    0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+    100% { transform: translate(var(--tx, 50px), var(--ty, -100px)) rotate(var(--r, 360deg)); opacity: 0; }
+}
+
+/* =========================================
+   SHATTER OVERLAY - Full screen shatter effect
+   ========================================= */
+.shatter-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    animation: shatterFadeIn 0.3s ease;
+}
+
+@keyframes shatterFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.shatter-content {
+    text-align: center;
+    animation: shatterPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes shatterPop {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.shatter-title {
+    font-size: clamp(2.5rem, 10vw, 5rem);
+    font-weight: 900;
+    margin: 0 0 1rem;
+    animation: shatterTitle 0.5s ease 0.3s backwards;
+}
+
+@keyframes shatterTitle {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.shatter-icon {
+    font-size: 6rem;
+    animation: shatterIcon 0.3s ease 0.5s backwards;
+}
+
+@keyframes shatterIcon {
+    from { opacity: 0; transform: rotate(-20deg); }
+    to { opacity: 1; transform: rotate(0); }
+}
+
+.shatter-name {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--color-red-blood);
+    margin: 1rem 0 0.5rem;
+}
+
+.shatter-role {
+    font-size: 1.2rem;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* =========================================
+   TYPOGRAPHY & GLOW
+   ========================================= */
+.mafia-title {
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-weight: 900;
+    letter-spacing: 6px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.glow-red { color: var(--color-red-blood); text-shadow: 0 0 30px var(--color-red-glow), 0 0 60px var(--color-red-glow); }
+.glow-blue { color: var(--color-blue-moon); text-shadow: 0 0 30px var(--color-blue-glow), 0 0 60px var(--color-blue-glow); }
+.glow-yellow { color: var(--color-yellow-sun); text-shadow: 0 0 30px var(--color-yellow-glow), 0 0 60px var(--color-yellow-glow); }
+.glow-green { color: var(--color-green-save); text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+
+.text-red { color: var(--color-red-blood); }
+.text-blue { color: var(--color-blue-moon); }
+.text-yellow { color: var(--color-yellow-sun); }
+.text-gray { color: var(--color-text-secondary); }
+.text-dim { color: var(--color-text-dim); }
+
+/* =========================================
+   BUTTONS
+   ========================================= */
+.mafia-btn {
+    font-weight: 900;
+    padding: 18px 36px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: transform 0.15s, box-shadow 0.15s;
+    width: 100%;
+    max-width: 320px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: none;
+    font-family: inherit;
+}
+
+.mafia-btn:active { transform: scale(0.97); }
+.mafia-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.mafia-btn.small { padding: 10px 20px; font-size: 0.85rem; max-width: 200px; }
+
+.hero-btn {
+    background: linear-gradient(135deg, var(--color-red-blood), #cc1133);
+    color: white;
+    box-shadow: 0 8px 25px rgba(255, 34, 68, 0.4);
+}
+.hero-btn:hover:not(:disabled) { box-shadow: 0 12px 35px rgba(255, 34, 68, 0.6); transform: translateY(-2px); }
+
+.admin-btn {
+    background: linear-gradient(135deg, var(--color-blue-moon), #2266cc);
+    color: white;
+    box-shadow: 0 8px 20px rgba(68, 136, 255, 0.3);
+}
+.admin-btn:hover:not(:disabled) { box-shadow: 0 12px 30px rgba(68, 136, 255, 0.5); transform: translateY(-2px); }
+
+@media (max-width: 480px) {
+    .mafia-btn { padding: 14px 24px; font-size: 1rem; }
+    .mafia-btn.small { padding: 8px 16px; font-size: 0.8rem; }
+}
+
+/* =========================================
+   PHASE TITLES
+   ========================================= */
+.phase-title {
+    font-size: clamp(1.8rem, 6vw, 3rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin: 0;
+    text-align: center;
+}
+
+/* =========================================
+   LOBBY
+   ========================================= */
+.mafia-lobby { text-align: center; gap: 1.5rem; }
+
+.lobby-icon { font-size: 4rem; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.lobby-subtitle { font-size: 1.1rem; color: var(--color-text-secondary); margin: 0; font-style: italic; }
+
+.player-roster {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+}
+
+.roster-player {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.roster-name { font-weight: 600; }
+.roster-host { font-size: 1rem; }
+
+.role-preview { display: flex; gap: 2rem; justify-content: center; }
+.role-preview-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.role-preview-count { font-size: 2.5rem; font-weight: 900; }
+.role-preview-label { font-size: 0.8rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+.waiting-message { padding: 1rem; color: var(--color-text-secondary); font-size: 1rem; }
+.exit-link { color: var(--color-text-dim); text-decoration: none; font-size: 0.9rem; margin-top: 0.5rem; transition: color 0.2s; }
+.exit-link:hover { color: var(--color-red-blood); }
+
+/* =========================================
+   NIGHT PHASE — Stars & Moon
+   ========================================= */
+.night-phase { text-align: center; gap: 2rem; }
+.night-content { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%; }
+.night-instruction { color: var(--color-text-secondary); font-size: 1rem; max-width: 300px; margin: 0; line-height: 1.5; }
+
+.stars-layer {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 60%;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.star {
+    position: absolute;
+    width: 3px; height: 3px;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s ease-in-out infinite;
+    opacity: 0.6;
+}
+
+@keyframes twinkle { 0%, 100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.5); } }
+
+.moon {
+    position: absolute;
+    top: 8%; right: 12%;
+    width: 80px; height: 80px;
+    background: radial-gradient(circle at 40% 40%, #ffeebb, #ddcc88);
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(255, 238, 187, 0.4), 0 0 80px rgba(255, 238, 187, 0.2);
+    z-index: 2;
+    overflow: hidden;
+}
+
+.moon-crater { position: absolute; background: rgba(200, 180, 120, 0.4); border-radius: 50%; }
+.moon-crater:nth-child(1) { width: 15px; height: 15px; top: 20%; left: 25%; }
+.moon-crater:nth-child(2) { width: 10px; height: 10px; top: 55%; left: 60%; }
+.moon-crater:nth-child(3) { width: 8px; height: 8px; top: 35%; left: 70%; }
+
+.mafia-know-phase .night-content { animation: fadeInScale 0.6s ease; }
+
+.mafia-seen-section { margin-top: 1rem; animation: fadeInScale 0.6s ease; }
+@keyframes fadeInScale { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+.mafia-list { display: flex; flex-direction: column; gap: 10px; margin-top: 1rem; }
+
+.mafia-member-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 24px;
+    background: rgba(255, 34, 68, 0.15);
+    border: 2px solid rgba(255, 34, 68, 0.5);
+    border-radius: var(--radius-md);
+    animation: mafiaAppear 0.5s ease backwards;
+}
+
+.mafia-member-card:nth-child(1) { animation-delay: 0.1s; }
+.mafia-member-card:nth-child(2) { animation-delay: 0.3s; }
+.mafia-member-card:nth-child(3) { animation-delay: 0.5s; }
+
+@keyframes mafiaAppear { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.mafia-member-icon { font-size: 1.8rem; }
+.mafia-member-name { font-size: 1.3rem; font-weight: 700; color: var(--color-red-blood); text-transform: uppercase; letter-spacing: 2px; }
+
+.mafia-hint {
+    font-size: 0.9rem;
+    color: var(--color-blue-moon);
+    margin-top: 1rem;
+    font-style: italic;
+}
+
+.villager-blind-section { padding: 2rem; color: var(--color-text-dim); font-style: italic; animation: fadeIn 1s ease; text-align: center; }
+.villager-hint { font-size: 0.8rem; color: var(--color-blue-moon); margin-top: 0.5rem; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* =========================================
+   DAY PHASE — Sun
+   ========================================= */
+.day-phase { text-align: center; gap: 1.5rem; }
+
+.sun-container { position: absolute; top: 5%; left: 50%; transform: translateX(-50%); z-index: 2; }
+
+.sun {
+    width: 90px; height: 90px;
+    background: radial-gradient(circle at 40% 40%, #ffee88, var(--color-yellow-sun), #ff9900);
+    border-radius: 50%;
+    box-shadow: 0 0 50px rgba(255, 204, 0, 0.6), 0 0 100px rgba(255, 153, 0, 0.3);
+    animation: sunPulse 4s ease-in-out infinite;
+}
+
+@keyframes sunPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+.sun-rays {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 200px; height: 200px;
+    transform: translate(-50%, -50%);
+    background: conic-gradient(from 0deg, transparent, rgba(255, 204, 0, 0.1), transparent, rgba(255, 204, 0, 0.1), transparent);
+    border-radius: 50%;
+    animation: sunRaysSpin 20s linear infinite;
+}
+
+@keyframes sunRaysSpin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+.day-content { display: flex; flex-direction: column; align-items: center; gap: 1.2rem; width: 100%; }
+.day-instruction { color: var(--color-text-secondary); margin: 0; font-size: 0.95rem; }
+
+.timer-display { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; max-width: 300px; }
+.timer-bar { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: var(--radius-full); overflow: hidden; }
+.timer-fill { height: 100%; background: linear-gradient(90deg, var(--color-yellow-sun), #ff9900); border-radius: var(--radius-full); transition: width 1s linear; }
+.timer-text { font-size: 1.8rem; font-weight: 900; color: var(--color-yellow-sun); text-shadow: 0 0 15px var(--color-yellow-glow); }
+
+/* =========================================
+   CHAT
+   ========================================= */
+.game-chat {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    max-width: 400px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chat-form { display: flex; gap: 8px; }
+.chat-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    font-size: 0.9rem;
+    outline: none;
+}
+.chat-input:focus { border-color: var(--color-yellow-sun); }
+.chat-send {
+    padding: 10px 16px;
+    background: var(--color-yellow-sun);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: black;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.chat-messages {
+    max-height: 120px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-sm);
+}
+
+.chat-msg { font-size: 0.85rem; }
+.chat-name { font-weight: 700; color: var(--color-yellow-sun); margin-right: 6px; }
+.chat-text { color: #ccc; }
+
+/* =========================================
+   PLAYER CARDS & GRIDS
+   ========================================= */
+.alive-players-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.player-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.player-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); }
+.player-card.player-targeted { border-color: var(--color-red-blood); box-shadow: 0 0 15px rgba(255, 34, 68, 0.3); }
+.player-avatar { font-size: 2rem; }
+.player-name { font-weight: 700; font-size: 0.9rem; text-align: center; word-break: break-word; }
+
+.vote-count {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: var(--color-red-blood);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 900;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(255, 34, 68, 0.5);
+}
+
+/* =========================================
+   VOTE PHASE
+   ========================================= */
+.vote-phase { text-align: center; gap: 1.5rem; }
+.vote-instruction { color: var(--color-text-secondary); font-size: 1rem; margin: 0; min-height: 2em; }
+
+.target-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 14px;
+    width: 100%;
+    max-width: 560px;
+}
+
+@media (max-width: 480px) {
+    .target-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+}
+
+.target-card {
+    background: rgba(255, 255, 255, 0.07);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 18px 12px;
+    border-radius: var(--radius-md);
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+}
+
+.target-card:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3); }
+.target-card:active:not(:disabled) { transform: scale(0.97); }
+.target-card.selected { background: rgba(255, 34, 68, 0.15); border-color: var(--color-red-blood); box-shadow: 0 0 20px rgba(255, 34, 68, 0.3); }
+.target-card:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.avatar { font-size: 2.5rem; }
+.target-name { font-weight: 700; font-size: 1rem; }
+
+.vote-badge {
+    position: absolute;
+    top: -10px; right: -10px;
+    background: var(--color-green-save);
+    color: #000;
+    font-size: 1rem;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(0, 255, 136, 0.5);
+    animation: popIn 0.2s ease;
+}
+
+@keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+.vote-count-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: var(--color-blue-moon);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 900;
+    min-width: 22px; height: 22px;
+    padding: 0 4px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 8px rgba(68, 136, 255, 0.5);
+}
+
+/* =========================================
+   REVEAL PHASE
+   ========================================= */
+.reveal-phase { text-align: center; gap: 2rem; }
+.reveal-content { display: flex; flex-direction: column; align-items: center; gap: 2rem; }
+.reveal-title { font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 900; text-transform: uppercase; letter-spacing: 3px; margin: 0; }
+
+.eliminated-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 2rem 3rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-lg);
+    animation: revealCardAppear 0.5s ease;
+}
+
+@keyframes revealCardAppear { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+.eliminated-icon { font-size: 4rem; }
+.eliminated-name { font-size: 2rem; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; }
+.eliminated-role { font-size: 0.9rem; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; padding: 6px 16px; border-radius: var(--radius-full); }
+.tie-message { color: var(--color-text-secondary); font-size: 1.1rem; font-style: italic; }
+
+/* =========================================
+   GAME OVER
+   ========================================= */
+.gameover-phase { text-align: center; gap: 2rem; }
+
+.winner-banner {
+    padding: 2.5rem 2rem;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 400px;
+    animation: winnerAppear 0.8s ease;
+}
+
+@keyframes winnerAppear { from { opacity: 0; transform: scale(0.8) translateY(30px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+.villagers-win { background: linear-gradient(135deg, rgba(255, 204, 0, 0.15), rgba(255, 153, 0, 0.1)); border: 2px solid rgba(255, 204, 0, 0.4); }
+.mafia-win { background: linear-gradient(135deg, rgba(255, 34, 68, 0.15), rgba(150, 0, 30, 0.1)); border: 2px solid rgba(255, 34, 68, 0.4); }
+.winner-title { font-size: clamp(1.8rem, 6vw, 3rem); font-weight: 900; text-transform: uppercase; letter-spacing: 4px; margin: 0 0 0.5rem; }
+.winner-subtitle { font-size: 1rem; color: var(--color-text-secondary); margin: 0; line-height: 1.5; }
+
+.final-stats { width: 100%; max-width: 400px; }
+.final-stats h2 { font-size: 1rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 1rem; }
+.final-roles-list { display: flex; flex-direction: column; gap: 8px; }
+.final-role-card { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(255, 255, 255, 0.05); border-radius: var(--radius-sm); border: 1px solid rgba(255, 255, 255, 0.08); }
+.final-role-card.final-dead { opacity: 0.35; filter: grayscale(0.5); }
+.final-role-icon { font-size: 1.4rem; }
+.final-role-name { flex: 1; font-weight: 600; text-align: left; }
+.final-role-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+.final-dead-badge { font-size: 0.65rem; font-weight: 900; background: rgba(255, 34, 68, 0.3); color: var(--color-red-blood); padding: 2px 8px; border-radius: var(--radius-full); }
+
+/* =========================================
+   DEATH OVERLAY
+   ========================================= */
+.death-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 0, 5, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+    text-align: center;
+    padding: 2rem;
+    gap: 1rem;
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.5s ease;
+}
+
+.skull-icon { font-size: 5rem; animation: skullBob 2s ease-in-out infinite; }
+@keyframes skullBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.blood-text { font-size: clamp(2.5rem, 10vw, 5rem); font-weight: 900; color: var(--color-red-blood); text-transform: uppercase; letter-spacing: 5px; text-shadow: 0 0 30px var(--color-red-glow), 0 0 60px var(--color-red-glow); margin: 0; line-height: 1.1; animation: bloodPulse 1s ease infinite; }
+@keyframes bloodPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+.death-overlay p { color: var(--color-text-secondary); font-size: 1rem; max-width: 300px; line-height: 1.5; }
+
+/* =========================================
+   UTILITY
+   ========================================= */
+.blink { animation: blinkAnim 1.5s ease-in-out infinite; }
+@keyframes blinkAnim { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Mobile */
+@media (max-width: 768px) {
+    .alive-players-grid { grid-template-columns: repeat(3, 1fr); }
+    .moon { width: 60px; height: 60px; top: 5%; right: 8%; }
+    .sun { width: 70px; height: 70px; }
+}
+
+@media (max-width: 480px) {
+    .alive-players-grid { grid-template-columns: repeat(2, 1fr); }
+    .mafia-lobby { gap: 1.2rem; }
+    .role-preview { gap: 1.5rem; }
+    .final-stats { max-width: 100%; }
+}
+
+.mafia-container { touch-action: pan-y; }

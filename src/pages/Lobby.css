@@ -1,0 +1,235 @@
+.lobby-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.game-title {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    letter-spacing: 2px;
+}
+
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+    }
+}
+
+.glow-blue {
+    color: #00d4ff;
+    text-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+}
+
+.lobby-panel {
+    background: var(--color-bg-card);
+    padding: 3rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    width: 100%;
+    max-width: 600px;
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .lobby-panel {
+        padding: 1.5rem;
+        gap: 1rem;
+    }
+}
+
+.mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    font-size: 1.5rem;
+}
+
+.mode-btn small {
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0.8;
+    margin-top: 5px;
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 2px solid var(--color-accent-secondary);
+    color: var(--color-accent-secondary);
+    padding: 14px 28px;
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    font-size: 1.5rem;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: rgba(0, 212, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.input-group.column {
+    flex-direction: column;
+}
+
+.input-group input {
+    flex-grow: 1;
+    padding: 15px 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255,255,255,0.05);
+    color: var(--color-text-primary);
+    font-size: 1.2rem;
+}
+
+@media (max-width: 480px) {
+    .input-group input {
+        font-size: 1rem;
+        padding: 12px 15px;
+    }
+}
+
+.btn-add {
+    background: var(--color-text-primary);
+    color: var(--color-bg-primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.players-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin: 1rem 0;
+    min-height: 50px;
+}
+
+.player-tag {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    color: var(--color-text-primary);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.player-tag .remove {
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0.6;
+}
+
+.player-tag .remove:hover {
+    opacity: 1;
+    color: #ff0055;
+}
+
+.split-actions {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1rem;
+    text-align: left;
+}
+
+@media (max-width: 768px) {
+    .split-actions {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}
+
+.host-section, .join-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.host-section h3, .join-section h3 {
+    margin: 0 0 10px 0;
+}
+
+.join-section input {
+    padding: 10px;
+    text-transform: uppercase;
+    text-align: center;
+    font-weight: bold;
+    letter-spacing: 5px;
+}
+
+.highlight-code {
+    color: var(--color-accent-primary);
+    font-size: 3rem;
+    letter-spacing: 8px;
+    display: block;
+    margin: 1rem 0;
+}
+
+.error-text {
+    color: #ff0055;
+    font-weight: bold;
+    background: rgba(255,0,85,0.1);
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.back-link {
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 1rem;
+}
+
+.back-link:hover {
+    color: var(--color-text-primary);
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease;
+}
+
+.blink {
+    animation: blinker 1.5s linear infinite;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blinker {
+    50% { opacity: 0.5; }
+}
