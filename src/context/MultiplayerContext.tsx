@@ -60,7 +60,8 @@ export const MultiplayerProvider: React.FC<{ children: ReactNode }> = ({ childre
     const setMode = (newMode: GameMode) => {
         setModeState(newMode);
         if (newMode === 'local') {
-            setCurrentPlayerId('host-' + generateId());
+            // currentPlayerId will be set when first player is added in addLocalPlayer
+            setCurrentPlayerId(null);
         }
     };
 
@@ -112,7 +113,12 @@ export const MultiplayerProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     const addLocalPlayer = (name: string) => {
-        setPlayers(prev => [...prev, { id: 'p-' + generateId(), name }]);
+        const newId = 'p-' + generateId();
+        setPlayers(prev => [...prev, { id: newId, name }]);
+        // First player added becomes the current player for turn tracking
+        if (currentPlayerId === null) {
+            setCurrentPlayerId(newId);
+        }
     };
 
     const removeLocalPlayer = (id: string) => {

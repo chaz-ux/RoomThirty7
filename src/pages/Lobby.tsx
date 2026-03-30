@@ -1,23 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useMultiplayer } from '../context/MultiplayerContext';
 import './Lobby.css';
 
-// Game meta for pill display
 const GAME_META: Record<string, { emoji: string; label: string }> = {
-  mafia:      { emoji: '🎭', label: 'Mafia' },
-  movie:      { emoji: '🍿', label: 'Guess the Movie' },
-  imposter:   { emoji: '🕵️', label: 'Imposter' },
-  '30seconds':{ emoji: '⏱️', label: '30 Seconds' },
-  charades:   { emoji: '🎬', label: 'Charades' },
-  hangman:    { emoji: '⚡', label: 'Hangman' },
+  mafia:       { emoji: '🎭', label: 'Mafia' },
+  movie:       { emoji: '🍿', label: 'Guess the Movie' },
+  imposter:    { emoji: '🕵️', label: 'Imposter' },
+  '30seconds': { emoji: '⏱️', label: '30 Seconds' },
+  charades:    { emoji: '🎬', label: 'Charades' },
+  hangman:     { emoji: '⚡', label: 'Hangman' },
 };
 
 type SetupState = 'MODE_SELECT' | 'LOCAL_SETUP' | 'ONLINE_SETUP' | 'ONLINE_HOST' | 'ONLINE_JOIN';
 
 const Lobby: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const gameId = searchParams.get('game') ?? '';
+  const gameId   = searchParams.get('game') ?? '';
   const navigate = useNavigate();
 
   const {
@@ -28,9 +27,14 @@ const Lobby: React.FC = () => {
   } = useMultiplayer();
 
   const [setupState, setSetupState] = useState<SetupState>('MODE_SELECT');
-  const [playerName, setPlayerName] = useState('');
-  const [joinCode, setJoinCode] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg,   setErrorMsg]   = useState('');
+
+  // ── KEY FIX: uncontrolled refs instead of controlled state ──
+  // Controlled state (useState) causes re-renders from the multiplayer
+  // context that reset the input every keystroke. Refs are immune.
+  const localNameRef  = useRef<HTMLInputElement>(null);
+  const onlineNameRef = useRef<HTMLInputElement>(null);
+  const joinCodeRef   = useRef<HTMLInputElement>(null);
 
   const meta = GAME_META[gameId] ?? { emoji: '🎮', label: gameId.toUpperCase() };
 
@@ -38,10 +42,13 @@ const Lobby: React.FC = () => {
     if (sharedState?.gameStarted && gameId) navigate(`/${gameId}`);
   }, [sharedState?.gameStarted, navigate, gameId]);
 
+  // ── Local setup ────────────────────────────────────────────
   const addPlayer = () => {
-    if (!playerName.trim()) return;
-    addLocalPlayer(playerName.trim());
-    setPlayerName('');
+    const val = localNameRef.current?.value.trim();
+    if (!val) return;
+    addLocalPlayer(val);
+    if (localNameRef.current) localNameRef.current.value = '';
+    localNameRef.current?.focus();
   };
 
   const handleLocalStart = () => {
@@ -49,6 +56,7 @@ const Lobby: React.FC = () => {
     navigate(`/${gameId}`);
   };
 
+  // ── Online ─────────────────────────────────────────────────
   const handleHostStart = async () => {
     if (players.length < 1) { setErrorMsg('Need at least 1 player!'); return; }
     await setSharedState({ gameStarted: true });
@@ -56,24 +64,27 @@ const Lobby: React.FC = () => {
   };
 
   const handleCreateRoom = async () => {
-    if (!playerName.trim()) { setErrorMsg('Enter your name first'); return; }
+    const name = onlineNameRef.current?.value.trim();
+    if (!name) { setErrorMsg('Enter your name first'); return; }
     try {
-      await createOnlineRoom(playerName.trim());
+      await createOnlineRoom(name);
       setSetupState('ONLINE_HOST');
       setErrorMsg('');
     } catch (e: any) { setErrorMsg(e.message ?? 'Failed to create room'); }
   };
 
   const handleJoinRoom = async () => {
-    if (!playerName.trim() || !joinCode.trim()) { setErrorMsg('Enter name and room code'); return; }
+    const name = onlineNameRef.current?.value.trim();
+    const code = joinCodeRef.current?.value.trim();
+    if (!name || !code) { setErrorMsg('Enter name and room code'); return; }
     try {
-      const ok = await joinOnlineRoom(joinCode.toUpperCase(), playerName.trim());
+      const ok = await joinOnlineRoom(code.toUpperCase(), name);
       if (ok) { setSetupState('ONLINE_JOIN'); setErrorMsg(''); }
       else setErrorMsg('Room not found!');
     } catch (e: any) { setErrorMsg(e.message ?? 'Failed to join room'); }
   };
 
-  /* ── Renders ──────────────────────────── */
+  // ── Renders ────────────────────────────────────────────────
   const ModeSelect = () => (
     <>
       <h2>How are you playing?</h2>
@@ -101,12 +112,16 @@ const Lobby: React.FC = () => {
     <>
       <h2>Add Players</h2>
       <div className="input-row">
+        {/* Uncontrolled input — immune to context re-renders */}
         <input
+          ref={localNameRef}
           type="text"
           placeholder="Player name..."
-          value={playerName}
-          onChange={e => setPlayerName(e.target.value)}
+          defaultValue=""
           onKeyDown={e => e.key === 'Enter' && addPlayer()}
+          autoFocus
+          autoCapitalize="words"
+          autoComplete="off"
         />
         <button className="btn-add" onClick={addPlayer}>Add</button>
       </div>
@@ -127,11 +142,15 @@ const Lobby: React.FC = () => {
   const OnlineSetup = () => (
     <>
       <h2>Online Multiplayer</h2>
+      {/* Uncontrolled input for name */}
       <input
+        ref={onlineNameRef}
         type="text"
         placeholder="Your name"
-        value={playerName}
-        onChange={e => setPlayerName(e.target.value)}
+        defaultValue=""
+        autoCapitalize="words"
+        autoComplete="off"
+        autoFocus
       />
       {errorMsg && <div className="error-msg">{errorMsg}</div>}
       <div className="online-split">
@@ -142,12 +161,14 @@ const Lobby: React.FC = () => {
         <div className="online-box">
           <h3>Join</h3>
           <input
+            ref={joinCodeRef}
             type="text"
             className="code-input"
             placeholder="CODE"
             maxLength={4}
-            value={joinCode}
-            onChange={e => setJoinCode(e.target.value)}
+            defaultValue=""
+            autoCapitalize="characters"
+            autoComplete="off"
           />
           <button className="btn btn-outline" onClick={handleJoinRoom}>Join</button>
         </div>
@@ -184,9 +205,7 @@ const Lobby: React.FC = () => {
       </div>
       <div className="waiting-pulse">
         Waiting for host
-        <span className="waiting-dots">
-          <span /><span /><span />
-        </span>
+        <span className="waiting-dots"><span /><span /><span /></span>
       </div>
       <div className="players-list">
         {players.map(p => (
@@ -205,7 +224,6 @@ const Lobby: React.FC = () => {
         <span className="lobby-game-pill-emoji">{meta.emoji}</span>
         {meta.label}
       </div>
-
       <div className="lobby-panel">
         {setupState === 'MODE_SELECT'  && <ModeSelect />}
         {setupState === 'LOCAL_SETUP'  && <LocalSetup />}

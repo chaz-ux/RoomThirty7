@@ -1,319 +1,693 @@
-.thirty-container {
-    min-height: 100vh;
-    background: #ffcc00; /* Vibrant yellow */
-    color: #111;
-    font-family: 'Inter', sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    padding: 1rem;
-    overflow: hidden;
+/* ═══════════════════════════════════════════════════════════
+   30 SECONDS — ROOM 37
+   Yellow & black. High contrast. Party energy.
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Boogaloo&family=DM+Sans:wght@400;700;900&display=swap');
+
+/* ── Container ─────────────────────────── */
+.ts-container {
+  min-height: 100dvh;
+  width: 100%;
+  background: #ffcc00;
+  color: #111;
+  font-family: 'DM Sans', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-@media (max-width: 768px) {
-    .thirty-container {
-        padding: 0.75rem;
-    }
+/* Pulse rings in background */
+.ts-container::before,
+.ts-container::after {
+  content: '';
+  position: fixed;
+  width: 150vw; height: 150vw;
+  border-radius: 50%;
+  border: 4px solid rgba(0,0,0,0.06);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.1);
+  pointer-events: none;
+  animation: tsRings 8s ease-out infinite;
+  z-index: 0;
+}
+.ts-container::after {
+  animation-delay: -4s;
+  border-color: rgba(255,255,255,0.15);
+}
+@keyframes tsRings {
+  0%   { transform: translate(-50%,-50%) scale(0.1); opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(2.5); opacity: 0; }
 }
 
-/* Background pulse rings */
-.thirty-container::before, .thirty-container::after {
-    content: '';
-    position: absolute;
-    width: 200wv;
-    height: 200vw;
-    border-radius: 50%;
-    border: 5px solid rgba(0,0,0,0.05);
-    z-index: 0;
-    pointer-events: none;
-    animation: expandRings 10s infinite linear;
+/* Phase backgrounds */
+.ts-phase-get_ready { background: #111; color: #ffcc00; }
+.ts-phase-steal     { background: #1a0030; color: #fff; }
+.ts-phase-game_over { background: #111; color: #ffcc00; }
+
+/* ── Shared center wrapper ─────────────── */
+.ts-center {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 20px 48px;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
 }
 
-.thirty-container::after {
-    animation-delay: -5s;
-    border-color: rgba(255,255,255,0.2);
+.fade-up { animation: fadeUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes expandRings {
-    0% { transform: scale(0.1); opacity: 1; }
-    100% { transform: scale(3); opacity: 0; }
+/* ── Logo ───────────────────────────────── */
+.ts-logo-wrap { text-align: center; }
+
+.ts-logo {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: clamp(4rem, 18vw, 7rem);
+  line-height: 0.95;
+  margin: 0;
+  color: #111;
+  text-shadow:
+    4px 4px 0 rgba(0,0,0,0.15),
+    8px 8px 0 rgba(0,0,0,0.08);
+  display: block;
+}
+.ts-phase-get_ready .ts-logo,
+.ts-phase-game_over .ts-logo { color: #ffcc00; }
+
+.ts-tagline {
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(0,0,0,0.55);
+  margin: 8px 0 0;
 }
 
-.thirty-lobby, .thirty-play, .thirty-score {
-    z-index: 10;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    animation: zoomIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+/* ── Players preview ────────────────────── */
+.ts-players-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.ts-player-chip {
+  background: rgba(0,0,0,0.08);
+  border: 2px solid rgba(0,0,0,0.12);
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
-@keyframes zoomIn {
-    from { transform: scale(0.8); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+/* ── Setup card ─────────────────────────── */
+.ts-setup-card {
+  background: rgba(0,0,0,0.06);
+  border: 2.5px solid rgba(0,0,0,0.1);
+  border-radius: 22px;
+  padding: 22px 18px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.title-wrapper {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    background: #111;
-    color: #ffcc00;
-    padding: 2rem 4rem;
-    border-radius: 20px;
-    transform: rotate(-3deg);
-    box-shadow: 10px 10px 0px rgba(0,0,0,0.2);
-    margin-bottom: 2rem;
+.ts-setup-label {
+  font-weight: 900;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,0.5);
+  margin: 0;
 }
 
-.thirty-title {
-    font-size: 8rem;
-    line-height: 1;
-    margin: 0;
-    font-weight: 900;
+.ts-team-inputs { display: flex; flex-direction: column; gap: 10px; }
+
+.ts-team-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.title-wrapper h2 {
-    font-size: 2rem;
-    letter-spacing: 5px;
-    margin: 0;
+.ts-team-dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(0,0,0,0.2);
+}
+.ts-dot-yellow { background: #ffcc00; }
+.ts-dot-black  { background: #111; }
+
+.ts-input {
+  flex: 1;
+  background: rgba(255,255,255,0.7);
+  border: 2.5px solid rgba(0,0,0,0.15);
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  min-height: 48px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.ts-input:focus { border-color: #111; }
+.ts-input::placeholder { color: rgba(0,0,0,0.3); font-weight: 400; }
+
+.ts-input-dark {
+  background: rgba(0,0,0,0.7);
+  color: #ffcc00;
+  border-color: rgba(255,255,255,0.15);
+}
+.ts-input-dark:focus { border-color: #ffcc00; }
+.ts-input-dark::placeholder { color: rgba(255,204,0,0.4); }
+
+/* Rules */
+.ts-rules { display: flex; flex-direction: column; gap: 8px; }
+.ts-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: rgba(0,0,0,0.6);
+}
+.ts-rule span { font-size: 1.1rem; }
+
+/* ── Buttons ────────────────────────────── */
+.ts-btn {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.04em;
+  padding: 15px 32px;
+  border-radius: 999px;
+  border: 3px solid #111;
+  cursor: pointer;
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  width: 100%;
+  max-width: 340px;
+}
+.ts-btn:active { transform: scale(0.96); }
+
+.ts-btn-dark {
+  background: #111;
+  color: #ffcc00;
+  box-shadow: 0 5px 0 rgba(0,0,0,0.3);
+}
+.ts-btn-dark:hover  { transform: translateY(-3px); box-shadow: 0 8px 0 rgba(0,0,0,0.3); }
+.ts-btn-dark:active { transform: translateY(3px);  box-shadow: 0 1px 0 rgba(0,0,0,0.3); }
+
+.ts-btn-steal {
+  background: #7b00d4;
+  color: #fff;
+  border-color: #7b00d4;
+  box-shadow: 0 4px 0 #3d0069;
+  max-width: 140px;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  padding: 13px 20px;
+}
+.ts-btn-steal:hover  { transform: translateY(-2px); box-shadow: 0 7px 0 #3d0069; }
+.ts-btn-steal:active { transform: translateY(2px);  box-shadow: 0 1px 0 #3d0069; }
+.ts-btn-steal:disabled { opacity: 0.35; cursor: default; transform: none; }
+
+.ts-exit {
+  color: rgba(0,0,0,0.4);
+  font-size: 0.85rem;
+  text-decoration: none;
+  margin-top: 4px;
+  transition: color 0.15s;
+}
+.ts-exit:hover { color: rgba(0,0,0,0.8); }
+
+.ts-phase-get_ready .ts-exit,
+.ts-phase-game_over .ts-exit { color: rgba(255,204,0,0.4); }
+.ts-phase-get_ready .ts-exit:hover,
+.ts-phase-game_over .ts-exit:hover { color: rgba(255,204,0,0.8); }
+
+.ts-waiting {
+  color: rgba(0,0,0,0.45);
+  font-size: 0.9rem;
+  animation: tsBlink 1.4s ease-in-out infinite;
+}
+@keyframes tsBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.ts-phase-get_ready .ts-waiting { color: rgba(255,204,0,0.5); }
+
+/* ── Get ready ──────────────────────────── */
+.ts-team-banner {
+  background: rgba(255,204,0,0.15);
+  border: 2.5px solid #ffcc00;
+  border-radius: 16px;
+  padding: 14px 24px;
+  text-align: center;
+  width: 100%;
+}
+.ts-team-banner-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,204,0,0.6);
+}
+.ts-team-banner-name {
+  display: block;
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 2rem;
+  color: #ffcc00;
+  margin-top: 2px;
 }
 
-.subtitle {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 3rem;
+.ts-countdown-wrap { text-align: center; }
+.ts-countdown {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: clamp(7rem, 30vw, 11rem);
+  line-height: 1;
+  color: #ffcc00;
+  text-shadow: 0 8px 0 rgba(0,0,0,0.3);
+  animation: tsPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes tsPop {
+  from { transform: scale(0.7); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.ts-countdown-sub {
+  color: rgba(255,204,0,0.7);
+  font-size: 1rem;
+  margin: 4px 0 0;
 }
 
-@media (max-width: 768px) {
-    .subtitle {
-        font-size: 1.1rem;
-        margin-bottom: 1.5rem;
-    }
+/* Score chips */
+.ts-score-preview {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.ts-score-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 2.5px solid rgba(0,0,0,0.2);
+}
+.ts-score-chip.yellow { background: #ffcc00; color: #111; }
+.ts-score-chip.dark   { background: #111;    color: #ffcc00; }
+.ts-score-chip-pts {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 1.4rem;
 }
 
-.thirty-btn {
-    background: #111;
-    color: white;
-    font-size: 1.5rem;
-    font-weight: 900;
-    padding: 20px 50px;
-    border: none;
-    border-radius: 50px;
-    cursor: pointer;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    text-transform: uppercase;
+/* ── Playing ────────────────────────────── */
+.ts-playing {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 20px 40px;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
 }
 
-@media (max-width: 768px) {
-    .thirty-btn {
-        font-size: 1.1rem;
-        padding: 15px 35px;
-        width: 100%;
-        max-width: 300px;
-    }
+/* Timer ring */
+.ts-timer-wrap {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+}
+.ts-timer-svg {
+  width: 110px; height: 110px;
+  transform: rotate(-90deg);
+}
+.ts-timer-track {
+  fill: none;
+  stroke: rgba(0,0,0,0.1);
+  stroke-width: 8;
+}
+.ts-timer-progress {
+  fill: none;
+  stroke: #ffcc00;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease, stroke 0.3s ease;
+}
+.ts-timer-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ts-timer-num {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 2.8rem;
+  line-height: 1;
+  color: #111;
+}
+.ts-timer-wrap.panic { animation: tsPanic 0.5s ease-in-out infinite; }
+@keyframes tsPanic {
+  0%,100% { transform: scale(1); }
+  50%     { transform: scale(1.08); }
+}
+.ts-timer-wrap.panic .ts-timer-num { color: #ff1744; }
+
+/* Turn info */
+.ts-turn-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.ts-turn-team {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 1.6rem;
+  color: #111;
+}
+.ts-turn-role {
+  font-size: 0.88rem;
+  color: rgba(0,0,0,0.55);
+  font-weight: 700;
+}
+.ts-guessed-count {
+  font-size: 0.82rem;
+  background: #111;
+  color: #ffcc00;
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-weight: 700;
+  margin-top: 4px;
 }
 
-.thirty-btn:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+/* Word cards */
+.ts-word-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
 }
 
-.thirty-btn.secondary {
-    background: transparent;
-    color: #111;
-    border: 3px solid #111;
-    margin-top: 1rem;
-    box-shadow: none;
+.ts-word-card {
+  width: 100%;
+  min-height: 68px;
+  border-radius: 16px;
+  border: 3px solid #111;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  cursor: pointer;
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 1.5rem;
+  color: #111;
+  box-shadow: 0 4px 0 #111;
+  transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1),
+              box-shadow 0.12s ease,
+              background 0.15s ease;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+.ts-word-card.active:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 0 #111;
+}
+.ts-word-card.active:active {
+  transform: translateY(3px) scale(0.97);
+  box-shadow: 0 1px 0 #111;
+}
+.ts-word-card.guessed {
+  background: #00e676;
+  border-color: #00a050;
+  box-shadow: 0 4px 0 #00a050;
+  cursor: default;
+  animation: wordGuessed 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes wordGuessed {
+  0%  { transform: scale(0.95); }
+  50% { transform: scale(1.04); }
+  100%{ transform: scale(1); }
+}
+.ts-word-text { flex: 1; }
+.ts-word-check {
+  font-size: 1.6rem;
+  color: #007a30;
+  font-weight: 900;
 }
 
-.thirty-btn.secondary:hover {
-    background: #111;
-    color: #ffcc00;
+/* Spectator view */
+.ts-spectator {
+  background: rgba(0,0,0,0.07);
+  border: 3px solid rgba(0,0,0,0.12);
+  border-radius: 22px;
+  padding: 28px 20px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.ts-spec-icon { font-size: 3.5rem; }
+.ts-spec-title {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 1.6rem;
+  margin: 0;
+}
+.ts-spec-score { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ts-spec-pts {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 3.5rem;
+  line-height: 1;
+  color: #111;
+}
+.ts-spec-label { font-size: 0.8rem; color: rgba(0,0,0,0.5); font-weight: 700; }
+.ts-spec-hint { font-size: 0.85rem; color: rgba(0,0,0,0.45); margin: 0; }
+
+/* Score row bottom */
+.ts-score-row-bottom {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.ts-score-chip-sm {
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(0,0,0,0.15);
+}
+.ts-score-chip-sm.yellow { background: rgba(0,0,0,0.08); }
+.ts-score-chip-sm.dark   { background: #111; color: #ffcc00; }
+
+/* ── Steal ──────────────────────────────── */
+.ts-steal-header { text-align: center; }
+.ts-steal-icon { font-size: 3.5rem; display: block; }
+.ts-steal-title {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 2.5rem;
+  margin: 6px 0 0;
+  color: #d500f9;
+}
+.ts-steal-sub { color: rgba(255,255,255,0.6); font-size: 0.9rem; margin: 4px 0 0; }
+
+.ts-steal-words {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.ts-steal-word {
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 1rem;
+  border: 2px solid transparent;
+}
+.ts-steal-word.taken {
+  background: rgba(0,230,118,0.12);
+  border-color: rgba(0,230,118,0.3);
+  color: #00e676;
+}
+.ts-steal-word.stolen {
+  background: rgba(213,0,249,0.12);
+  border-color: rgba(213,0,249,0.4);
+  color: #d500f9;
+}
+.ts-steal-word.missed {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+}
+.ts-steal-word-blur {
+  filter: blur(4px);
+  user-select: none;
+  color: rgba(255,255,255,0.8);
 }
 
-.exit-link {
-    margin-top: 2rem;
-    color: #333;
-    font-weight: bold;
-    text-decoration: none;
+.ts-steal-form { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.ts-steal-instruction {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
+  margin: 0;
+  font-weight: 600;
+}
+.ts-steal-input-row { display: flex; gap: 8px; }
+.ts-steal-input {
+  flex: 1;
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.2) !important;
+  color: #fff !important;
+}
+.ts-steal-input::placeholder { color: rgba(255,255,255,0.3) !important; }
+.ts-steal-input:focus { border-color: #d500f9 !important; }
+
+.ts-steal-feedback {
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 8px;
+  border-radius: 10px;
+  animation: fbPop 0.3s ease;
+}
+@keyframes fbPop {
+  from { transform: scale(0.8); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.ts-steal-feedback.correct { background: rgba(0,230,118,0.15); color: #00e676; }
+.ts-steal-feedback.wrong   { background: rgba(255,23,68,0.15);  color: #ff6b6b; }
+
+/* ── Round score ────────────────────────── */
+.ts-round-score-title {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 2.5rem;
+  margin: 0;
 }
 
-.exit-link:hover {
-    color: #000;
+.ts-round-results {
+  display: flex;
+  gap: 12px;
+  width: 100%;
 }
-
-/* PLAYING STATE */
-.play-header {
-    margin-bottom: 2rem;
+.ts-round-result {
+  flex: 1;
+  border-radius: 18px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 3px solid rgba(0,0,0,0.12);
 }
+.ts-round-result.yellow { background: #ffcc00; }
+.ts-round-result.dark   { background: #111; color: #ffcc00; }
 
-.timer-circle {
-    width: 150px;
-    height: 150px;
-    background: white;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 5rem;
-    font-weight: 900;
-    color: #111;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    border: 10px solid #111;
-    margin: 0 auto;
-    transition: all 0.3s;
+.ts-rr-team { font-size: 0.82rem; font-weight: 700; opacity: 0.7; }
+.ts-rr-pts {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: 2.8rem;
+  line-height: 1;
 }
+.ts-rr-total { font-size: 0.78rem; opacity: 0.6; }
 
-.panic-mode {
-    border-color: #ff0055;
-    color: #ff0055;
-    animation: heartbeat 0.5s infinite alternate;
+/* Progress bars */
+.ts-progress-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-
-@keyframes heartbeat {
-    from { transform: scale(1); }
-    to { transform: scale(1.15); box-shadow: 0 0 30px rgba(255,0,85,0.6); }
+.ts-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-
-.word-card {
-    background: white;
-    border-radius: 20px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 15px 15px 0px rgba(0,0,0,0.1);
-    overflow: hidden;
-    transform: rotate(2deg);
+.ts-progress-label {
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 60px;
 }
-
-.card-top-bar {
-    background: #111;
-    color: white;
-    padding: 10px;
-    font-weight: bold;
-    letter-spacing: 2px;
+.ts-progress-track {
+  flex: 1;
+  height: 12px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid rgba(0,0,0,0.1);
 }
-
-.word-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+.ts-progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
 }
+.ts-progress-fill.yellow { background: #111; }
+.ts-progress-fill.dark   { background: #111; }
+.ts-progress-pts { font-weight: 700; font-size: 0.82rem; min-width: 42px; text-align: right; }
 
-.word-item {
-    font-size: 1.8rem;
-    font-weight: 800;
-    padding: 20px;
-    border-bottom: 2px solid #eee;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    user-select: none;
+/* ── Game over ───────────────────────────── */
+.ts-go-trophy {
+  font-size: 5.5rem;
+  animation: tsTrophy 2s ease-in-out infinite;
 }
-
-@media (max-width: 768px) {
-    .word-item {
-        font-size: 1.3rem;
-        padding: 15px;
-        min-height: 60px;
-    }
+@keyframes tsTrophy {
+  0%,100% { filter: drop-shadow(0 0 12px rgba(255,204,0,0.7)); }
+  50%     { filter: drop-shadow(0 0 30px rgba(255,204,0,1)); }
 }
-
-.word-item:last-child {
-    border-bottom: none;
+.ts-go-title {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: clamp(2.5rem, 10vw, 4rem);
+  color: #ffcc00;
+  margin: 0;
+  text-align: center;
 }
-
-.word-item .dot {
-    width: 15px;
-    height: 15px;
-    background: #ddd;
-    border-radius: 50%;
-    margin-right: 15px;
-    transition: background 0.3s;
+.ts-go-scores {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-
-.word-item:active {
-    background: #f8f8f8;
+.ts-go-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,204,0,0.08);
+  border: 2px solid rgba(255,204,0,0.15);
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-size: 1rem;
+  animation: slideIn 0.4s ease both;
 }
-
-.word-item.guessed {
-    background: rgba(0, 255, 136, 0.1);
-    color: #00aa55;
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
+.ts-go-row.winner { background: rgba(255,204,0,0.2); border-color: #ffcc00; }
+.ts-go-name { flex: 1; font-weight: 700; color: #ffcc00; }
+.ts-go-pts  { color: #ffcc00; font-family: 'Boogaloo', sans-serif; font-size: 1.4rem; }
 
-.word-item.guessed .dot {
-    background: #00aa55;
-}
-
-.word-item .check {
-    margin-left: auto;
-    color: #00aa55;
-    font-size: 2rem;
-}
-
-.instruction-text {
-    margin-top: 2rem;
-    font-weight: bold;
-    color: #111;
-    background: rgba(255,255,255,0.5);
-    padding: 10px 20px;
-    border-radius: 20px;
-}
-
-/* SCORE STATE */
-.thirty-score h1 {
-    font-size: 5rem;
-    color: #ff0055;
-    text-shadow: 2px 2px 0 #fff;
-    margin-bottom: 1rem;
-}
-
-@media (max-width: 768px) {
-    .thirty-score h1 {
-        font-size: 2.5rem;
-    }
-}
-
-.score-display {
-    font-size: 3rem;
-    font-weight: bold;
-    margin-bottom: 1rem;
-    background: white;
-    padding: 20px 40px;
-    border-radius: 20px;
-    box-shadow: 10px 10px 0px rgba(0,0,0,0.1);
-}
-
-@media (max-width: 768px) {
-    .score-display {
-        font-size: 1.8rem;
-        padding: 15px 25px;
-    }
-}
-
-.score-num {
-    font-size: 6rem;
-    color: #00aa55;
-}
-
-.missed-words {
-    margin: 2rem 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-}
-
-.missed-tag {
-    background: rgba(0,0,0,0.1);
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: bold;
-    text-decoration: line-through;
-    opacity: 0.6;
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 380px) {
+  .ts-center, .ts-playing {
+    padding: 18px 14px 36px;
+    gap: 14px;
+  }
+  .ts-word-card { font-size: 1.3rem; min-height: 58px; }
+  .ts-btn { font-size: 1.1rem; padding: 13px 24px; }
 }
