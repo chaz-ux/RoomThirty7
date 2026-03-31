@@ -691,3 +691,97 @@
   .ts-word-card { font-size: 1.3rem; min-height: 58px; }
   .ts-btn { font-size: 1.1rem; padding: 13px 24px; }
 }
+
+/* ── Pass & Play Gate Screen ───────────── */
+.ts-phase-gate {
+  background: #111;
+  color: #fff;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ts-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px 28px;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+}
+
+.ts-gate-icon {
+  font-size: 5rem;
+  animation: gateFloat 2s ease-in-out infinite alternate;
+}
+@keyframes gateFloat {
+  from { transform: translateY(0) rotate(-5deg); }
+  to   { transform: translateY(-12px) rotate(5deg); }
+}
+
+.ts-gate-title {
+  font-family: 'Boogaloo', sans-serif;
+  font-size: clamp(2rem, 8vw, 3rem);
+  color: #ffcc00;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.ts-gate-sub {
+  color: rgba(255,255,255,0.55);
+  font-size: 1rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ts-btn-gate {
+  font-size: 1.2rem;
+  background: #ffcc00;
+  color: #111;
+  border-color: #ffcc00;
+  box-shadow: 0 5px 0 rgba(255,204,0,0.3);
+  max-width: 100%;
+  width: 100%;
+}
+.ts-btn-gate:hover  { transform: translateY(-3px); box-shadow: 0 8px 0 rgba(255,204,0,0.3); }
+.ts-btn-gate:active { transform: translateY(3px);  box-shadow: 0 1px 0 rgba(255,204,0,0.3); }
+
+.ts-gate-warning {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.3);
+  margin: 0;
+}
+
+/* ── Reveal words at round end ─────────── */
+.ts-reveal-words {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.ts-reveal-word {
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: 2px solid transparent;
+}
+.ts-reveal-word.guessed {
+  background: rgba(0,230,118,0.12);
+  border-color: rgba(0,230,118,0.3);
+  color: #00c853;
+}
+.ts-reveal-word.stolen {
+  background: rgba(213,0,249,0.1);
+  border-color: rgba(213,0,249,0.3);
+  color: #d500f9;
+}
+.ts-reveal-word.missed {
+  background: rgba(255,23,68,0.08);
+  border-color: rgba(255,23,68,0.2);
+  color: rgba(0,0,0,0.45);
+  text-decoration: line-through;
+}

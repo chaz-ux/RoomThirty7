@@ -1,152 +1,146 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Matter from 'matter-js';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import './ThirtySeconds.css';
 
 // ─────────────────────────────────────────────────────────────
 //  30 SECONDS — ROOM 37
 //
-//  Real 30 Seconds rules:
-//  • 2 teams. Team A describes, Team B guesses + monitors clock.
-//  • 30 seconds. Describe 5 words without saying the word.
-//  • After time: Team B gets a STEAL on any words Team A missed.
-//  • Teams alternate. First to 30 points wins.
+//  Pass & Play (one device):
+//    Each phase transition shows a SCREEN GATE — a blank screen
+//    with instructions to pass the device. The next team taps
+//    "I have the phone" to reveal their view.
 //
-//  Physics: Matter.js powers word cards — correct guesses
-//  explode off screen, skipped ones fall and crumple.
+//  Online (multiple devices):
+//    No gates needed — everyone sees their own screen.
+//    Describer's screen shows words. Others see spectator view.
 // ─────────────────────────────────────────────────────────────
 
-// ── Word cards ─────────────────────────────────────────────────
 const CARDS: string[][] = [
-  // Kenyan culture & people
+  // Kenyan culture
   ['Matatu', 'Nyama Choma', 'M-Pesa', 'Harambee', 'Kanjo'],
   ['Ugali', 'Boda Boda', 'Kibera', 'Sukuma Wiki', 'Jua Kali'],
   ['Maasai Mara', 'Lake Nakuru', 'Mutura', 'Westlands', 'Mandazi'],
-  ['Sauti Sol', 'Khaligraph', 'Lupita Nyong\'o', 'Eric Omondi', 'Akothee'],
+  ['Sauti Sol', 'Khaligraph', "Lupita Nyong'o", 'Eric Omondi', 'Akothee'],
   ['Churchill Show', 'Bien', 'Trio Mio', 'Nairobi', 'Uhuru Park'],
   ['Pilau', 'Githeri', 'Chapati', 'Matumbo', 'Wali wa Nazi'],
-
-  // African celebs & culture
+  // African
   ['Burna Boy', 'Wizkid', 'Davido', 'Tiwa Savage', 'Diamond Platnumba'],
   ['Amapiano', 'Afrobeats', 'Bongo', 'Genge', 'Kapuka'],
   ['Nollywood', 'BBNaija', 'Afcon', 'Harambee Stars', 'Gor Mahia'],
-
-  // Global pop culture
+  // Global
   ['Eiffel Tower', 'Banana', 'Superman', 'Pizza', 'Dinosaur'],
   ['Harry Potter', 'Guitar', 'Snowman', 'Coffee', 'Tornado'],
   ['Oxygen', 'Moon', 'Vampire', 'Swimming', 'Chocolate'],
   ['Netflix', 'Kangaroo', 'Sushi', 'Pyramid', 'Helicopter'],
   ['Instagram', 'Football', 'Shark', 'Rainbow', 'Earthquake'],
-  ['Astronaut', 'Submarine', 'Roller coaster', 'Solar eclipse', 'Waterfall'],
-  ['Beyoncé', 'Ronaldo', 'Elon Musk', 'Obama', 'Oprah'],
-  ['McDonald\'s', 'TikTok', 'YouTube', 'WhatsApp', 'Uber'],
+  ['Astronaut', 'Submarine', 'Roller Coaster', 'Solar Eclipse', 'Waterfall'],
+  ["Beyoncé", 'Ronaldo', 'Elon Musk', 'Obama', 'Oprah'],
+  ["McDonald's", 'TikTok', 'YouTube', 'WhatsApp', 'Uber'],
   ['Tsunami', 'Igloo', 'Bulldozer', 'Quicksand', 'Mirage'],
   ['Bluetooth', 'Vaccine', 'Democracy', 'Inflation', 'Algorithm'],
-  ['Photosynthesis', 'Gravity', 'Evolution', 'Black hole', 'DNA'],
+  ['Photosynthesis', 'Gravity', 'Evolution', 'Black Hole', 'DNA'],
 ];
 
 const WINNING_SCORE = 30;
 
 type Phase =
-  | 'SETUP'        // choose teams
-  | 'LOBBY'        // waiting to start round
-  | 'GET_READY'    // 3s countdown
-  | 'PLAYING'      // 30s describe
-  | 'STEAL'        // opposing team steal attempt
-  | 'ROUND_SCORE'  // show round result
-  | 'GAME_OVER';   // someone hit 30
+  | 'SETUP'
+  | 'GET_READY'
+  | 'PLAYING'
+  | 'STEAL'
+  | 'ROUND_SCORE'
+  | 'GAME_OVER';
 
-interface Team { name: string; playerIds: string[]; score: number; }
+// Pass & play gate types — what to show on the blank screen
+type Gate =
+  | 'pass_to_describer'   // "Pass to Team A — they will describe"
+  | 'pass_to_steal'       // "Pass to Team B — time to steal"
+  | 'pass_to_next'        // "Pass to Team B — your turn to describe"
+  | null;                 // no gate, show normal screen
+
+interface Team { name: string; score: number; }
 
 interface SharedState {
   phase: Phase;
   teams: Team[];
-  describingTeamIdx: number;  // 0 or 1
+  describingTeamIdx: number;
   currentCard: string[];
   cardIndex: number;
-  guessed: number[];          // indices guessed by describing team
-  stolen: number[];           // indices stolen by opposing team
+  guessed: number[];
+  stolen: number[];
   endTime: number;
-  roundScoreA: number;        // points this round for describer team
-  roundScoreB: number;        // points this round for steal team
+  roundScoreA: number;
+  roundScoreB: number;
 }
 
-// ── Physics word card ──────────────────────────────────────────
-interface PhysicsWord {
-  word: string;
-  idx: number;
-  state: 'idle' | 'correct' | 'skipped';
-  x: number;
-  y: number;
-  rotation: number;
-  opacity: number;
-  scale: number;
-}
+const usedCardIndices = new Set<number>();
+const getRandomCard = (): string[] => {
+  if (usedCardIndices.size >= CARDS.length) usedCardIndices.clear();
+  let idx: number;
+  do { idx = Math.floor(Math.random() * CARDS.length); } while (usedCardIndices.has(idx));
+  usedCardIndices.add(idx);
+  return CARDS[idx];
+};
 
-// ── Helpers ────────────────────────────────────────────────────
-const getRandomCard = (): string[] =>
-  CARDS[Math.floor(Math.random() * CARDS.length)];
+const other = (idx: number) => idx === 0 ? 1 : 0;
 
-const otherTeam = (idx: number) => (idx === 0 ? 1 : 0);
-
-// ── Main component ─────────────────────────────────────────────
 const ThirtySecondsGame: React.FC = () => {
-  const { players, sharedState, setSharedState, isHost, currentPlayerId } = useMultiplayer();
+  const { players, sharedState, setSharedState, isHost, currentPlayerId, mode } = useMultiplayer();
 
-  // Physics canvas ref
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const engineRef  = useRef<Matter.Engine | null>(null);
-  const bodiesRef  = useRef<Map<number, Matter.Body>>(new Map());
-  const rafRef     = useRef<number>(0);
+  const isPassPlay = mode === 'local';
 
-  // Local state
-  const [timeLeft,   setTimeLeft]   = useState(30);
-  const [wordStates, setWordStates] = useState<PhysicsWord[]>([]);
-  const [setupStep,  setSetupStep]  = useState<'teams' | 'ready'>('teams');
-  const [team0Name,  setTeam0Name]  = useState('Team A');
-  const [team1Name,  setTeam1Name]  = useState('Team B');
-  const [stealInput, setStealInput] = useState('');
-  const [stealResult, setStealResult] = useState<'correct'|'wrong'|null>(null);
+  // ── Local state ──────────────────────────────────────────
+  const [timeLeft,    setTimeLeft]    = useState(30);
+  const [stealInput,  setStealInput]  = useState('');
+  const [stealResult, setStealResult] = useState<'correct' | 'wrong' | null>(null);
+  const [team0Name,   setTeam0Name]   = useState('Team A');
+  const [team1Name,   setTeam1Name]   = useState('Team B');
 
-  // Destructure shared state safely
-  const gs = (sharedState ?? {}) as Partial<SharedState>;
-  const phase           = gs.phase            ?? 'SETUP';
-  const teams           = gs.teams            ?? [];
-  const describingIdx   = gs.describingTeamIdx ?? 0;
-  const currentCard     = gs.currentCard      ?? [];
-  const guessed         = gs.guessed          ?? [];
-  const stolen          = gs.stolen           ?? [];
-  const endTime         = gs.endTime          ?? 0;
+  // The pass-and-play gate — null means "show normal screen"
+  const [gate, setGate] = useState<Gate>(null);
+  // Which team is currently holding the device (0 or 1), tracked locally
+  const [holderTeam, setHolderTeam] = useState<number>(0);
 
-  const describingTeam  = teams[describingIdx];
-  const opposingTeam    = teams[otherTeam(describingIdx)];
+  const prevPhaseRef = useRef<Phase | null>(null);
 
-  // Am I the describer? (first player of describing team for simplicity)
-  const myTeamIdx = teams.findIndex(t => t.playerIds.includes(currentPlayerId ?? ''));
-  const amDescribing = myTeamIdx === describingIdx;
-  const amOpposing   = myTeamIdx === otherTeam(describingIdx);
+  // ── Shared state ─────────────────────────────────────────
+  const gs             = (sharedState ?? {}) as Partial<SharedState>;
+  const phase          = gs.phase            ?? 'SETUP';
+  const teams          = gs.teams            ?? [];
+  const describingIdx  = gs.describingTeamIdx ?? 0;
+  const currentCard    = gs.currentCard      ?? [];
+  const guessed        = gs.guessed          ?? [];
+  const stolen         = gs.stolen           ?? [];
+  const endTime        = gs.endTime          ?? 0;
 
-  // ── Init word physics states when card changes ────────────────
+  const describingTeam = teams[describingIdx];
+  const opposingTeam   = teams[other(describingIdx)];
+
+  // ── Gate logic: trigger when phase changes ────────────────
   useEffect(() => {
-    if (phase !== 'PLAYING' || !currentCard.length) return;
-    setWordStates(currentCard.map((word, idx) => ({
-      word, idx,
-      state: 'idle',
-      x: 0, y: 0, rotation: 0, opacity: 1, scale: 1,
-    })));
-  }, [phase, gs.cardIndex]);
+    if (!isPassPlay) return;
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
 
-  // ── Timer ─────────────────────────────────────────────────────
+    if (phase === 'GET_READY' && prev !== null) {
+      // New round starting — pass to the describing team
+      setHolderTeam(other(describingIdx)); // currently with opposing team
+      setGate('pass_to_describer');
+    } else if (phase === 'STEAL') {
+      // Time up — pass to opposing team to steal
+      setHolderTeam(describingIdx);        // currently with describing team
+      setGate('pass_to_steal');
+    }
+  }, [phase, isPassPlay]);
+
+  // ── Timer ────────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'PLAYING' && phase !== 'GET_READY') return;
     const interval = setInterval(() => {
       const rem = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
       setTimeLeft(rem);
-
-      if (rem <= 0) {
+      if (rem <= 0 && isHost) {
         clearInterval(interval);
-        if (!isHost) return;
-
         if (phase === 'GET_READY') {
           const card = getRandomCard();
           setSharedState({
@@ -158,99 +152,25 @@ const ThirtySecondsGame: React.FC = () => {
             endTime: Date.now() + 30000,
           });
         } else if (phase === 'PLAYING') {
-          // Check if there are any words to steal
-          const missedCount = currentCard.filter((_, i) => !guessed.includes(i)).length;
-          setSharedState({ phase: missedCount > 0 ? 'STEAL' : 'ROUND_SCORE' });
+          const missed = currentCard.filter((_, i) => !guessed.includes(i)).length;
+          setSharedState({ phase: missed > 0 ? 'STEAL' : 'ROUND_SCORE' });
         }
       }
     }, 200);
     return () => clearInterval(interval);
-  }, [phase, endTime, isHost]);
+  }, [phase, endTime, isHost, guessed, currentCard]);
 
-  // ── Word tap (describer taps guessed words) ───────────────────
-  const tapWord = useCallback(async (idx: number) => {
-    if (phase !== 'PLAYING') return;
-    if (guessed.includes(idx)) return;
-
-    const newGuessed = [...guessed, idx];
-    if (navigator.vibrate) navigator.vibrate(40);
-
-    // Physics: fling the word card off screen
-    setWordStates(prev => prev.map(w =>
-      w.idx === idx ? { ...w, state: 'correct' } : w
-    ));
-
-    // Animate then remove
-    setTimeout(() => {
-      setWordStates(prev => prev.map(w =>
-        w.idx === idx ? { ...w, opacity: 0, scale: 1.3 } : w
-      ));
-    }, 300);
-
-    await setSharedState({ guessed: newGuessed });
-  }, [phase, guessed, setSharedState]);
-
-  // ── Steal attempt ─────────────────────────────────────────────
-  const attemptSteal = async () => {
-    const missed = currentCard.filter((_, i) => !guessed.includes(i) && !stolen.includes(i));
-    const guess  = stealInput.trim().toLowerCase();
-    const match  = missed.findIndex(w => w.toLowerCase() === guess ||
-      w.toLowerCase().includes(guess) || guess.includes(w.toLowerCase().split(' ')[0]));
-
-    if (match !== -1) {
-      const actualIdx = currentCard.indexOf(missed[match]);
-      setStealResult('correct');
-      if (navigator.vibrate) navigator.vibrate([80, 40, 120]);
-      await setSharedState({ stolen: [...stolen, actualIdx] });
-    } else {
-      setStealResult('wrong');
-      if (navigator.vibrate) navigator.vibrate(100);
-    }
-    setStealInput('');
-    setTimeout(() => setStealResult(null), 1200);
-  };
-
-  // ── Finish steal, apply scores ─────────────────────────────────
-  const endSteal = async () => {
-    const describerPts = guessed.length;
-    const stealPts     = stolen.length;
-
-    const newTeams = teams.map((t, i) => ({
-      ...t,
-      score: t.score + (i === describingIdx ? describerPts : stealPts),
-    }));
-
-    const someone30 = newTeams.some(t => t.score >= WINNING_SCORE);
-    await setSharedState({
-      teams: newTeams,
-      phase: someone30 ? 'GAME_OVER' : 'ROUND_SCORE',
-      roundScoreA: describerPts,
-      roundScoreB: stealPts,
-    });
-  };
-
-  // ── Next round ────────────────────────────────────────────────
-  const nextRound = async () => {
+  // ── Start game ────────────────────────────────────────────
+  const startGame = async () => {
     if (!isHost) return;
-    const nextDescriber = otherTeam(describingIdx);
-    await setSharedState({
-      phase: 'GET_READY',
-      describingTeamIdx: nextDescriber,
-      guessed: [],
-      stolen: [],
-      endTime: Date.now() + 3000,
-    });
-  };
-
-  // ── Setup teams ────────────────────────────────────────────────
-  const startWithTeams = async () => {
-    if (!isHost) return;
-    // Split players roughly in half
-    const half = Math.ceil(players.length / 2);
     const t: Team[] = [
-      { name: team0Name, playerIds: players.slice(0, half).map(p => p.id), score: 0 },
-      { name: team1Name, playerIds: players.slice(half).map(p => p.id), score: 0 },
+      { name: team0Name, score: 0 },
+      { name: team1Name, score: 0 },
     ];
+    if (isPassPlay) {
+      setHolderTeam(1); // device starts with opposing team, gate will ask to pass to Team A
+      setGate('pass_to_describer');
+    }
     await setSharedState({
       phase: 'GET_READY',
       teams: t,
@@ -262,12 +182,73 @@ const ThirtySecondsGame: React.FC = () => {
     });
   };
 
-  // ── No players guard ─────────────────────────────────────────
+  // ── Word tap ──────────────────────────────────────────────
+  const tapWord = async (idx: number) => {
+    if (phase !== 'PLAYING' || guessed.includes(idx)) return;
+    if (navigator.vibrate) navigator.vibrate(40);
+    await setSharedState({ guessed: [...guessed, idx] });
+  };
+
+  // ── Steal ─────────────────────────────────────────────────
+  const attemptSteal = async () => {
+    const missed = currentCard.filter((_, i) => !guessed.includes(i) && !stolen.includes(i));
+    const g = stealInput.trim().toLowerCase();
+    const matchIdx = missed.findIndex(w =>
+      w.toLowerCase() === g ||
+      w.toLowerCase().includes(g) ||
+      g.includes(w.toLowerCase().split(' ')[0])
+    );
+    if (matchIdx !== -1) {
+      const actualIdx = currentCard.indexOf(missed[matchIdx]);
+      setStealResult('correct');
+      if (navigator.vibrate) navigator.vibrate([60, 30, 100]);
+      await setSharedState({ stolen: [...stolen, actualIdx] });
+    } else {
+      setStealResult('wrong');
+      if (navigator.vibrate) navigator.vibrate(80);
+    }
+    setStealInput('');
+    setTimeout(() => setStealResult(null), 1200);
+  };
+
+  const endSteal = async () => {
+    const dPts = guessed.length;
+    const sPts = stolen.length;
+    const newTeams = teams.map((t, i) => ({
+      ...t,
+      score: t.score + (i === describingIdx ? dPts : sPts),
+    }));
+    const won = newTeams.some(t => t.score >= WINNING_SCORE);
+    await setSharedState({
+      teams: newTeams,
+      phase: won ? 'GAME_OVER' : 'ROUND_SCORE',
+      roundScoreA: dPts,
+      roundScoreB: sPts,
+    });
+  };
+
+  const nextRound = async () => {
+    if (!isHost) return;
+    const next = other(describingIdx);
+    if (isPassPlay) {
+      setGate('pass_to_next');
+      setHolderTeam(describingIdx); // currently with old describing team
+    }
+    await setSharedState({
+      phase: 'GET_READY',
+      describingTeamIdx: next,
+      guessed: [],
+      stolen: [],
+      endTime: Date.now() + 3000,
+    });
+  };
+
+  // ── Guard ─────────────────────────────────────────────────
   if (!players.length) {
     return (
       <div className="ts-container">
         <div className="ts-center">
-          <h1 className="ts-logo">30 SECONDS</h1>
+          <h1 className="ts-logo">30<br/>SECONDS</h1>
           <a href="/lobby?game=30seconds" className="ts-btn ts-btn-dark">Go to Lobby</a>
         </div>
       </div>
@@ -275,9 +256,46 @@ const ThirtySecondsGame: React.FC = () => {
   }
 
   const timerPanic = timeLeft <= 8 && timeLeft > 0;
-  const missedWords = currentCard.filter((_, i) => !guessed.includes(i) && !stolen.includes(i));
 
-  // ─────────────────────── RENDERS ─────────────────────────────
+  // ── Pass & Play Gate Screen ───────────────────────────────
+  // Shown between phases when one device is being passed around.
+  // Screen is intentionally minimal — the other team shouldn't
+  // be able to see anything useful.
+  const renderGate = () => {
+    const receivingTeam = gate === 'pass_to_describer'
+      ? teams[describingIdx]
+      : gate === 'pass_to_steal'
+      ? teams[other(describingIdx)]
+      : gate === 'pass_to_next'
+      ? teams[other(describingIdx)]
+      : null;
+
+    const gateMsg = gate === 'pass_to_describer'
+      ? { icon: '📱', title: `Pass to ${receivingTeam?.name ?? 'the next team'}`, sub: "They'll describe the words. Don't peek!", btn: 'I have the phone →' }
+      : gate === 'pass_to_steal'
+      ? { icon: '🥷', title: `Pass to ${receivingTeam?.name ?? 'the other team'}`, sub: "Time's up! They get a steal attempt.", btn: 'I have the phone →' }
+      : { icon: '📱', title: `Pass to ${receivingTeam?.name ?? 'the next team'}`, sub: "It's your turn to describe!", btn: 'I have the phone →' };
+
+    return (
+      <div className="ts-gate">
+        <div className="ts-gate-icon">{gateMsg.icon}</div>
+        <h2 className="ts-gate-title">{gateMsg.title}</h2>
+        <p className="ts-gate-sub">{gateMsg.sub}</p>
+        <button
+          className="ts-btn ts-btn-dark ts-btn-gate"
+          onClick={() => {
+            setHolderTeam(receivingTeam === teams[0] ? 0 : 1);
+            setGate(null);
+          }}
+        >
+          {gateMsg.btn}
+        </button>
+        <p className="ts-gate-warning">⚠️ Keep screen face-down until you have it</p>
+      </div>
+    );
+  };
+
+  // ─────────────────────── RENDERS ─────────────────────────
 
   const renderSetup = () => (
     <div className="ts-center fade-up">
@@ -300,23 +318,15 @@ const ThirtySecondsGame: React.FC = () => {
           <div className="ts-team-inputs">
             <div className="ts-team-input-wrap">
               <div className="ts-team-dot ts-dot-yellow" />
-              <input
-                className="ts-input"
-                value={team0Name}
+              <input className="ts-input" value={team0Name}
                 onChange={e => setTeam0Name(e.target.value)}
-                placeholder="Team A"
-                maxLength={16}
-              />
+                placeholder="Team A" maxLength={16} />
             </div>
             <div className="ts-team-input-wrap">
               <div className="ts-team-dot ts-dot-black" />
-              <input
-                className="ts-input ts-input-dark"
-                value={team1Name}
+              <input className="ts-input ts-input-dark" value={team1Name}
                 onChange={e => setTeam1Name(e.target.value)}
-                placeholder="Team B"
-                maxLength={16}
-              />
+                placeholder="Team B" maxLength={16} />
             </div>
           </div>
 
@@ -324,10 +334,11 @@ const ThirtySecondsGame: React.FC = () => {
             <div className="ts-rule"><span>📣</span> Describe 5 words in 30 seconds</div>
             <div className="ts-rule"><span>🚫</span> No saying the word or any part of it</div>
             <div className="ts-rule"><span>🥷</span> Opposing team can STEAL missed words</div>
-            <div className="ts-rule"><span>🏆</span> First team to {WINNING_SCORE} points wins</div>
+            <div className="ts-rule"><span>🏆</span> First to {WINNING_SCORE} points wins</div>
+            {isPassPlay && <div className="ts-rule"><span>📱</span> One device — pass it between teams</div>}
           </div>
 
-          <button className="ts-btn ts-btn-dark" onClick={startWithTeams}>
+          <button className="ts-btn ts-btn-dark" onClick={startGame}>
             START GAME →
           </button>
         </div>
@@ -341,17 +352,13 @@ const ThirtySecondsGame: React.FC = () => {
 
   const renderGetReady = () => (
     <div className="ts-center fade-up">
-      <div className="ts-team-banner" style={{ background: describingTeam?.name ? undefined : undefined }}>
+      <div className="ts-team-banner">
         <span className="ts-team-banner-label">DESCRIBING</span>
         <span className="ts-team-banner-name">{describingTeam?.name ?? 'Team A'}</span>
       </div>
       <div className="ts-countdown-wrap">
         <div className="ts-countdown">{timeLeft}</div>
-        <p className="ts-countdown-sub">
-          {amDescribing
-            ? 'Get ready — you\'re describing!'
-            : 'Get ready to guess!'}
-        </p>
+        <p className="ts-countdown-sub">Get ready…</p>
       </div>
       <div className="ts-score-preview">
         {teams.map((t, i) => (
@@ -370,11 +377,9 @@ const ThirtySecondsGame: React.FC = () => {
       <div className={`ts-timer-wrap ${timerPanic ? 'panic' : ''}`}>
         <svg className="ts-timer-svg" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="52" className="ts-timer-track" />
-          <circle
-            cx="60" cy="60" r="52"
+          <circle cx="60" cy="60" r="52"
             className="ts-timer-progress"
             strokeDasharray={`${326 * (timeLeft / 30)} 326`}
-            strokeDashoffset="0"
             style={{ stroke: timerPanic ? '#ff1744' : '#ffcc00' }}
           />
         </svg>
@@ -383,46 +388,29 @@ const ThirtySecondsGame: React.FC = () => {
         </div>
       </div>
 
-      {/* Team banner */}
       <div className="ts-turn-info">
-        <span className="ts-turn-team">{describingTeam?.name}</span>
-        <span className="ts-turn-role">
-          {amDescribing ? '📣 You\'re describing!' : '🎧 Listen & guess!'}
-        </span>
+        <span className="ts-turn-team">{describingTeam?.name} describes</span>
         <span className="ts-guessed-count">{guessed.length}/5 guessed</span>
       </div>
 
-      {/* Word cards — only visible to describer */}
-      {amDescribing ? (
-        <div className="ts-word-cards">
-          {currentCard.map((word, idx) => {
-            const isGuessed = guessed.includes(idx);
-            return (
-              <button
-                key={idx}
-                className={`ts-word-card ${isGuessed ? 'guessed' : 'active'}`}
-                onClick={() => !isGuessed && tapWord(idx)}
-                disabled={isGuessed}
-              >
-                <span className="ts-word-text">{word}</span>
-                {isGuessed && <span className="ts-word-check">✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="ts-spectator">
-          <div className="ts-spec-icon">👂</div>
-          <h2 className="ts-spec-title">{describingTeam?.name} is describing…</h2>
-          <div className="ts-spec-score">
-            <span className="ts-spec-pts">{guessed.length}</span>
-            <span className="ts-spec-label">guessed so far</span>
-          </div>
-          <p className="ts-spec-hint">Shout your answers out loud!</p>
-        </div>
-      )}
+      {/* Pass & play: describer always sees the words (they're holding device) */}
+      {/* Online: only describer's device shows words */}
+      <div className="ts-word-cards">
+        {currentCard.map((word, idx) => {
+          const isGuessed = guessed.includes(idx);
+          return (
+            <button key={idx}
+              className={`ts-word-card ${isGuessed ? 'guessed' : 'active'}`}
+              onClick={() => !isGuessed && tapWord(idx)}
+              disabled={isGuessed}
+            >
+              <span className="ts-word-text">{word}</span>
+              {isGuessed && <span className="ts-word-check">✓</span>}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Score chips */}
       <div className="ts-score-row-bottom">
         {teams.map((t, i) => (
           <div key={i} className={`ts-score-chip-sm ${i === 0 ? 'yellow' : 'dark'}`}>
@@ -433,74 +421,50 @@ const ThirtySecondsGame: React.FC = () => {
     </div>
   );
 
-  const renderSteal = () => {
-    const canSteal = amOpposing;
-    return (
-      <div className="ts-center fade-up">
-        <div className="ts-steal-header">
-          <span className="ts-steal-icon">🥷</span>
-          <h2 className="ts-steal-title">STEAL TIME</h2>
-          <p className="ts-steal-sub">
-            {opposingTeam?.name} can steal missed words!
-          </p>
-        </div>
-
-        {/* Show missed words — but HIDDEN until steal attempt */}
-        <div className="ts-steal-words">
-          {currentCard.map((word, idx) => {
-            const wasGuessed = guessed.includes(idx);
-            const wasStolen  = stolen.includes(idx);
-            if (wasGuessed) return (
-              <div key={idx} className="ts-steal-word taken">✓ {word}</div>
-            );
-            if (wasStolen) return (
-              <div key={idx} className="ts-steal-word stolen">🥷 {word}</div>
-            );
-            return (
-              <div key={idx} className="ts-steal-word missed">
-                {canSteal ? <span className="ts-steal-word-blur">{word}</span> : '???'}
-              </div>
-            );
-          })}
-        </div>
-
-        {canSteal && (
-          <div className="ts-steal-form">
-            <p className="ts-steal-instruction">Type a word you think was missed:</p>
-            <div className="ts-steal-input-row">
-              <input
-                className="ts-input ts-steal-input"
-                value={stealInput}
-                onChange={e => setStealInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && stealInput && attemptSteal()}
-                placeholder="Type word…"
-                autoFocus
-              />
-              <button className="ts-btn ts-btn-steal" onClick={attemptSteal}
-                disabled={!stealInput.trim()}>
-                STEAL →
-              </button>
-            </div>
-            {stealResult === 'correct' && <div className="ts-steal-feedback correct">✓ Stolen!</div>}
-            {stealResult === 'wrong'   && <div className="ts-steal-feedback wrong">✗ Not on the card</div>}
-          </div>
-        )}
-
-        {!canSteal && (
-          <p className="ts-waiting">
-            {opposingTeam?.name} is attempting steals…
-          </p>
-        )}
-
-        {(isHost || amOpposing) && (
-          <button className="ts-btn ts-btn-dark" onClick={endSteal}
-            style={{ marginTop: '16px' }}>
-            Done Stealing →
-          </button>
-        )}
+  const renderSteal = () => (
+    <div className="ts-center fade-up">
+      <div className="ts-steal-header">
+        <span className="ts-steal-icon">🥷</span>
+        <h2 className="ts-steal-title">STEAL TIME</h2>
+        <p className="ts-steal-sub">{opposingTeam?.name} — guess the missed words!</p>
       </div>
-    );
-  };
+
+      <div className="ts-steal-words">
+        {currentCard.map((word, idx) => {
+          const wasGuessed = guessed.includes(idx);
+          const wasStolen  = stolen.includes(idx);
+          if (wasGuessed) return <div key={idx} className="ts-steal-word taken">✓ {word}</div>;
+          if (wasStolen)  return <div key={idx} className="ts-steal-word stolen">🥷 {word}</div>;
+          return <div key={idx} className="ts-steal-word missed">❓ ???</div>;
+        })}
+      </div>
+
+      <div className="ts-steal-form">
+        <p className="ts-steal-instruction">Type a word you think was on the card:</p>
+        <div className="ts-steal-input-row">
+          <input
+            className="ts-input ts-steal-input"
+            value={stealInput}
+            onChange={e => setStealInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && stealInput && attemptSteal()}
+            placeholder="Type word…"
+            autoFocus
+            autoComplete="off"
+          />
+          <button className="ts-btn ts-btn-steal" onClick={attemptSteal}
+            disabled={!stealInput.trim()}>
+            STEAL →
+          </button>
+        </div>
+        {stealResult === 'correct' && <div className="ts-steal-feedback correct">✓ Stolen!</div>}
+        {stealResult === 'wrong'   && <div className="ts-steal-feedback wrong">✗ Not on the card</div>}
+      </div>
+
+      <button className="ts-btn ts-btn-dark" onClick={endSteal}>
+        Done Stealing →
+      </button>
+    </div>
+  );
 
   const renderRoundScore = () => {
     const dPts = gs.roundScoreA ?? 0;
@@ -508,6 +472,19 @@ const ThirtySecondsGame: React.FC = () => {
     return (
       <div className="ts-center fade-up">
         <h2 className="ts-round-score-title">ROUND OVER</h2>
+
+        {/* Reveal all words now */}
+        <div className="ts-reveal-words">
+          {currentCard.map((word, idx) => {
+            const g = guessed.includes(idx);
+            const s = stolen.includes(idx);
+            return (
+              <div key={idx} className={`ts-reveal-word ${g ? 'guessed' : s ? 'stolen' : 'missed'}`}>
+                {g ? '✓' : s ? '🥷' : '✗'} {word}
+              </div>
+            );
+          })}
+        </div>
 
         <div className="ts-round-results">
           <div className="ts-round-result yellow">
@@ -517,21 +494,18 @@ const ThirtySecondsGame: React.FC = () => {
           </div>
           <div className="ts-round-result dark">
             <span className="ts-rr-team">{opposingTeam?.name}</span>
-            <span className="ts-rr-pts">+{sPts} {sPts > 0 ? '🥷' : ''}</span>
+            <span className="ts-rr-pts">+{sPts}{sPts > 0 ? ' 🥷' : ''}</span>
             <span className="ts-rr-total">{opposingTeam?.score} total</span>
           </div>
         </div>
 
-        {/* Progress bar to 30 */}
         <div className="ts-progress-section">
           {teams.map((t, i) => (
             <div key={i} className="ts-progress-row">
               <span className="ts-progress-label">{t.name}</span>
               <div className="ts-progress-track">
-                <div
-                  className={`ts-progress-fill ${i === 0 ? 'yellow' : 'dark'}`}
-                  style={{ width: `${Math.min(100, (t.score / WINNING_SCORE) * 100)}%` }}
-                />
+                <div className={`ts-progress-fill ${i === 0 ? 'yellow' : 'dark'}`}
+                  style={{ width: `${Math.min(100, (t.score / WINNING_SCORE) * 100)}%` }} />
               </div>
               <span className="ts-progress-pts">{t.score}/{WINNING_SCORE}</span>
             </div>
@@ -552,13 +526,13 @@ const ThirtySecondsGame: React.FC = () => {
   };
 
   const renderGameOver = () => {
-    const winner = [...teams].sort((a, b) => b.score - a.score)[0];
+    const sorted = [...teams].sort((a, b) => b.score - a.score);
     return (
       <div className="ts-center fade-up">
         <div className="ts-go-trophy">🏆</div>
-        <h1 className="ts-go-title">{winner?.name} WINS!</h1>
+        <h1 className="ts-go-title">{sorted[0]?.name} WINS!</h1>
         <div className="ts-go-scores">
-          {[...teams].sort((a, b) => b.score - a.score).map((t, i) => (
+          {sorted.map((t, i) => (
             <div key={i} className={`ts-go-row ${i === 0 ? 'winner' : ''}`}>
               <span>{i === 0 ? '🥇' : '🥈'}</span>
               <span className="ts-go-name">{t.name}</span>
@@ -568,7 +542,7 @@ const ThirtySecondsGame: React.FC = () => {
         </div>
         {isHost && (
           <button className="ts-btn ts-btn-dark"
-            onClick={() => setSharedState({ phase: 'SETUP', teams: [] })}>
+            onClick={() => { setGate(null); setSharedState({ phase: 'SETUP', teams: [] }); }}>
             PLAY AGAIN
           </button>
         )}
@@ -577,10 +551,14 @@ const ThirtySecondsGame: React.FC = () => {
     );
   };
 
+  // ── Gate takes priority over everything ──────────────────
+  if (isPassPlay && gate !== null) return (
+    <div className="ts-container ts-phase-gate">{renderGate()}</div>
+  );
+
   return (
     <div className={`ts-container ts-phase-${phase.toLowerCase()}`}>
       {phase === 'SETUP'       && renderSetup()}
-      {phase === 'LOBBY'       && renderSetup()}
       {phase === 'GET_READY'   && renderGetReady()}
       {phase === 'PLAYING'     && renderPlaying()}
       {phase === 'STEAL'       && renderSteal()}

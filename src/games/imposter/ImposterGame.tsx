@@ -1,605 +1,892 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Matter from 'matter-js';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import './Imposter.css';
 
-// ============================================================
-// IMPOSTER GAME - ROOM 37
+// ─────────────────────────────────────────────────────────────
+//  IMPOSTER — ROOM 37
 //
-// How it works:
-// 1. Host starts → players see their words ONE BY ONE (pass device)
-// 2. Players sit in a circle and take TURNS giving ONE WORD clues
-// 3. After all clues given (multiple rounds), brief discussion
-// 4. Vote on who you think is the imposter
-// 5. Reveal - imposter wins if not caught!
-// ============================================================
+//  Word reveal (pass & play):
+//    Tap "Reveal" → see word → tap "I've seen it" → blurs
+//    → "Pass to next" → next person taps → repeat
+//
+//  Starter word: after ALL reveals done, ONE vague word shown
+//    to everyone to kick off clue-giving.
+//
+//  Imposter gets a related but different word.
+//  Up to 3 clue rounds. Vote after any round.
+//  If caught: imposter gets one final guess at the real word.
+// ─────────────────────────────────────────────────────────────
 
-const WORD_BANK = [
-    // People
-    'Kendrick Lamar', 'Elon Musk', 'Beyonce', 'Shrek', 'Barack Obama',
-    'Cristiano Ronaldo', 'Mickey Mouse', 'Gordon Ramsay', 'Keanu Reeves',
-    'Tom Hanks', 'Mr Bean', 'Spongebob', 'Harry Potter', 'Spider-Man',
-    'Batman', 'Darth Vader', 'Yoda', 'Gandalf', 'Mario', 'Pikachu',
-    'Sauti Sol', 'Eliud Kipchoge', 'Nameless', 'Ngũ',
+interface WordEntry {
+  civilian:  string;
+  imposter:  string;
+  starter:   string;   // single vague word shown to ALL after reveals
+}
 
-    // Places
-    'Nairobi', 'Mombasa', 'Paris', 'Tokyo', 'Egypt', 'Hawaii', 'Dubai',
-    'London', 'Maasai Mara', 'Mt Kenya', 'Kisumu', 'Nakuru', 'Eldoret',
+// 120+ word pairs. Starter = one vague word that relates to both
+// civilian and imposter so neither side gets an unfair hint.
+const WORDS: WordEntry[] = [
+  // ── Food & Drink ─────────────────────────────────────────
+  { civilian: 'Pizza',         imposter: 'Burger',          starter: 'round'       },
+  { civilian: 'Sushi',         imposter: 'Spring Roll',      starter: 'wrap'        },
+  { civilian: 'Nyama Choma',   imposter: 'BBQ Ribs',         starter: 'smoke'       },
+  { civilian: 'Ugali',         imposter: 'Fufu',             starter: 'dough'       },
+  { civilian: 'Pilau',         imposter: 'Biryani',          starter: 'spicy'       },
+  { civilian: 'Mandazi',       imposter: 'Doughnut',         starter: 'fried'       },
+  { civilian: 'Chai',          imposter: 'Coffee',           starter: 'morning'     },
+  { civilian: 'Chocolate',     imposter: 'Candy',            starter: 'sweet'       },
+  { civilian: 'Ice Cream',     imposter: 'Frozen Yoghurt',   starter: 'cold'        },
+  { civilian: 'Watermelon',    imposter: 'Mango',            starter: 'summer'      },
+  { civilian: 'Githeri',       imposter: 'Lentils',          starter: 'beans'       },
+  { civilian: 'Sukuma Wiki',   imposter: 'Spinach',          starter: 'green'       },
+  { civilian: 'Chapati',       imposter: 'Roti',             starter: 'flat'        },
+  { civilian: 'Mutura',        imposter: 'Sausage',          starter: 'meat'        },
+  { civilian: 'Samosa',        imposter: 'Spring Roll',      starter: 'crispy'      },
+  { civilian: 'Wali',          imposter: 'Jollof',           starter: 'white'       },
+  { civilian: 'Avocado',       imposter: 'Guacamole',        starter: 'creamy'      },
+  { civilian: 'Porridge',      imposter: 'Oatmeal',          starter: 'warm'        },
+  { civilian: 'Soda',          imposter: 'Juice',            starter: 'thirsty'     },
+  { civilian: 'Beer',          imposter: 'Wine',             starter: 'cheers'      },
 
-    // Things
-    'Bitcoin', 'Pizza', 'Sushi', 'Iphone', 'Nintendo Switch', 'Macbook',
-    'Airplane', 'Guitar', 'Telescope', 'Diamonds', 'M-Pesa', 'Matatu',
-    'Boda Boda', 'Ugali', 'Nyama Choma', 'Chai', 'Sukuma Wiki', 'Harambee',
+  // ── Animals ───────────────────────────────────────────────
+  { civilian: 'Lion',          imposter: 'Tiger',            starter: 'fierce'      },
+  { civilian: 'Elephant',      imposter: 'Rhino',            starter: 'heavy'       },
+  { civilian: 'Crocodile',     imposter: 'Alligator',        starter: 'snap'        },
+  { civilian: 'Flamingo',      imposter: 'Pelican',          starter: 'pink'        },
+  { civilian: 'Gorilla',       imposter: 'Chimpanzee',       starter: 'climb'       },
+  { civilian: 'Giraffe',       imposter: 'Camel',            starter: 'tall'        },
+  { civilian: 'Zebra',         imposter: 'Donkey',           starter: 'stripes'     },
+  { civilian: 'Cheetah',       imposter: 'Leopard',          starter: 'fast'        },
+  { civilian: 'Hippo',         imposter: 'Manatee',          starter: 'water'       },
+  { civilian: 'Eagle',         imposter: 'Hawk',             starter: 'sky'         },
+  { civilian: 'Penguin',       imposter: 'Puffin',           starter: 'cold'        },
+  { civilian: 'Shark',         imposter: 'Dolphin',          starter: 'ocean'       },
+  { civilian: 'Parrot',        imposter: 'Toucan',           starter: 'colour'      },
+  { civilian: 'Cat',           imposter: 'Rabbit',           starter: 'soft'        },
+  { civilian: 'Dog',           imposter: 'Wolf',             starter: 'loyal'       },
+  { civilian: 'Cow',           imposter: 'Goat',             starter: 'farm'        },
+  { civilian: 'Snake',         imposter: 'Lizard',           starter: 'scales'      },
+  { civilian: 'Monkey',        imposter: 'Baboon',           starter: 'mischief'    },
 
-    // More
-    'Amazon', 'Titanic', 'Eiffel Tower', 'Pyramids', 'Great Wall',
-    'Superman', 'Iron Man', 'Thor', 'Captain Jack Sparrow'
+  // ── Places ────────────────────────────────────────────────
+  { civilian: 'Nairobi',       imposter: 'Mombasa',          starter: 'city'        },
+  { civilian: 'Maasai Mara',   imposter: 'Serengeti',        starter: 'safari'      },
+  { civilian: 'Mt Kenya',      imposter: 'Kilimanjaro',      starter: 'peak'        },
+  { civilian: 'Lake Victoria', imposter: 'Lake Nakuru',      starter: 'lake'        },
+  { civilian: 'Kibera',        imposter: 'Mathare',          starter: 'community'   },
+  { civilian: 'Westlands',     imposter: 'Kilimani',         starter: 'uptown'      },
+  { civilian: 'Uhuru Park',    imposter: 'City Park',        starter: 'trees'       },
+  { civilian: 'Eiffel Tower',  imposter: 'Big Ben',          starter: 'landmark'    },
+  { civilian: 'Pyramids',      imposter: 'Sphinx',           starter: 'ancient'     },
+  { civilian: 'Times Square',  imposter: 'Piccadilly',       starter: 'lights'      },
+  { civilian: 'Dubai',         imposter: 'Abu Dhabi',        starter: 'desert'      },
+  { civilian: 'Paris',         imposter: 'Rome',             starter: 'romantic'    },
+  { civilian: 'Tokyo',         imposter: 'Seoul',            starter: 'neon'        },
+  { civilian: 'Hollywood',     imposter: 'Bollywood',        starter: 'movies'      },
+  { civilian: 'Eldoret',       imposter: 'Kisumu',           starter: 'upcountry'   },
+  { civilian: 'Malindi',       imposter: 'Watamu',           starter: 'beach'       },
+  { civilian: 'Naivasha',      imposter: 'Nakuru',           starter: 'rift'        },
+  { civilian: 'CBD',           imposter: 'Town',             starter: 'busy'        },
+
+  // ── People ────────────────────────────────────────────────
+  { civilian: 'Eliud Kipchoge',imposter: 'David Rudisha',    starter: 'run'         },
+  { civilian: 'Lupita',        imposter: 'Wanjiru Kamau',    starter: 'actress'     },
+  { civilian: 'Sauti Sol',     imposter: 'Mafia Afrika',     starter: 'band'        },
+  { civilian: 'Khaligraph',    imposter: 'Octopizzo',        starter: 'rap'         },
+  { civilian: 'Akothee',       imposter: 'Tanasha',          starter: 'banger'      },
+  { civilian: 'Eric Omondi',   imposter: 'Churchill',        starter: 'laugh'       },
+  { civilian: 'Bien',          imposter: 'Bensoul',          starter: 'smooth'      },
+  { civilian: 'Trio Mio',      imposter: 'Wakadinali',       starter: 'wave'        },
+  { civilian: 'Cristiano',     imposter: 'Messi',            starter: 'goat'        },
+  { civilian: 'Beyoncé',       imposter: 'Rihanna',          starter: 'queen'       },
+  { civilian: 'Obama',         imposter: 'Mandela',          starter: 'history'     },
+  { civilian: 'Elon Musk',     imposter: 'Jeff Bezos',       starter: 'rich'        },
+  { civilian: 'Burna Boy',     imposter: 'Wizkid',           starter: 'afrobeats'   },
+  { civilian: 'Davido',        imposter: 'Kizz Daniel',      starter: 'tune'        },
+  { civilian: 'Diamond',       imposter: 'Ali Kiba',         starter: 'bongo'       },
+  { civilian: 'Tiwa Savage',   imposter: 'Tems',             starter: 'vibe'        },
+  { civilian: 'Gordon Ramsay', imposter: 'Jamie Oliver',     starter: 'cook'        },
+  { civilian: 'Mr Bean',       imposter: 'Rowan Atkinson',   starter: 'funny'       },
+  { civilian: 'Harry Potter',  imposter: 'Gandalf',          starter: 'magic'       },
+  { civilian: 'Batman',        imposter: 'Superman',         starter: 'cape'        },
+  { civilian: 'Spiderman',     imposter: 'Antman',           starter: 'crawl'       },
+  { civilian: 'Shrek',         imposter: 'Donkey',           starter: 'swamp'       },
+  { civilian: 'Spongebob',     imposter: 'Patrick',          starter: 'happy'       },
+  { civilian: 'Pikachu',       imposter: 'Charmander',       starter: 'battle'      },
+  { civilian: 'Mario',         imposter: 'Sonic',            starter: 'jump'        },
+  { civilian: 'Dora',          imposter: 'Blues Clues',      starter: 'backpack'    },
+
+  // ── Things & Tech ─────────────────────────────────────────
+  { civilian: 'Guitar',        imposter: 'Violin',           starter: 'strings'     },
+  { civilian: 'Piano',         imposter: 'Keyboard',         starter: 'keys'        },
+  { civilian: 'Drum',          imposter: 'Bongo',            starter: 'beat'        },
+  { civilian: 'Balloon',       imposter: 'Bubble',           starter: 'pop'         },
+  { civilian: 'Telescope',     imposter: 'Binoculars',       starter: 'far'         },
+  { civilian: 'Camera',        imposter: 'Binoculars',       starter: 'zoom'        },
+  { civilian: 'iPhone',        imposter: 'Samsung',          starter: 'screen'      },
+  { civilian: 'M-Pesa',        imposter: 'PayPal',           starter: 'send'        },
+  { civilian: 'Matatu',        imposter: 'Boda Boda',        starter: 'ride'        },
+  { civilian: 'Bitcoin',       imposter: 'Ethereum',         starter: 'crypto'      },
+  { civilian: 'Netflix',       imposter: 'YouTube',          starter: 'binge'       },
+  { civilian: 'WhatsApp',      imposter: 'Telegram',         starter: 'message'     },
+  { civilian: 'Instagram',     imposter: 'TikTok',           starter: 'scroll'      },
+  { civilian: 'Laptop',        imposter: 'Tablet',           starter: 'type'        },
+  { civilian: 'Headphones',    imposter: 'Earbuds',          starter: 'sound'       },
+  { civilian: 'Airplane',      imposter: 'Helicopter',       starter: 'fly'         },
+  { civilian: 'Train',         imposter: 'Tram',             starter: 'track'       },
+  { civilian: 'Bicycle',       imposter: 'Scooter',          starter: 'ride'        },
+  { civilian: 'Umbrella',      imposter: 'Raincoat',         starter: 'rain'        },
+  { civilian: 'Backpack',      imposter: 'Handbag',          starter: 'carry'       },
+  { civilian: 'Glasses',       imposter: 'Sunglasses',       starter: 'see'         },
+  { civilian: 'Watch',         imposter: 'Clock',            starter: 'time'        },
+  { civilian: 'Bed',           imposter: 'Sofa',             starter: 'rest'        },
+  { civilian: 'Mirror',        imposter: 'Window',           starter: 'glass'       },
+  { civilian: 'Candle',        imposter: 'Torch',            starter: 'light'       },
+  { civilian: 'Knife',         imposter: 'Scissors',         starter: 'cut'         },
+  { civilian: 'Fridge',        imposter: 'Freezer',          starter: 'cold'        },
+  { civilian: 'Microwave',     imposter: 'Oven',             starter: 'heat'        },
+  { civilian: 'Broom',         imposter: 'Mop',              starter: 'clean'       },
+
+  // ── Events & Concepts ─────────────────────────────────────
+  { civilian: 'Wedding',       imposter: 'Engagement',       starter: 'ring'        },
+  { civilian: 'Funeral',       imposter: 'Memorial',         starter: 'quiet'       },
+  { civilian: 'Birthday',      imposter: 'Anniversary',      starter: 'celebrate'   },
+  { civilian: 'Election',      imposter: 'Referendum',       starter: 'vote'        },
+  { civilian: 'Hospital',      imposter: 'Clinic',           starter: 'sick'        },
+  { civilian: 'School',        imposter: 'College',          starter: 'learn'       },
+  { civilian: 'Church',        imposter: 'Mosque',           starter: 'pray'        },
+  { civilian: 'Market',        imposter: 'Mall',             starter: 'shop'        },
+  { civilian: 'Gym',           imposter: 'Stadium',          starter: 'sweat'       },
+  { civilian: 'Prison',        imposter: 'Police Station',   starter: 'locked'      },
+  { civilian: 'Library',       imposter: 'Bookshop',         starter: 'read'        },
+  { civilian: 'Museum',        imposter: 'Art Gallery',      starter: 'old'         },
+  { civilian: 'Earthquake',    imposter: 'Tsunami',          starter: 'shake'       },
+  { civilian: 'Drought',       imposter: 'Famine',           starter: 'dry'         },
+  { civilian: 'Flood',         imposter: 'Landslide',        starter: 'muddy'       },
+  { civilian: 'Strike',        imposter: 'Protest',          starter: 'crowd'       },
+  { civilian: 'Parliament',    imposter: 'Senate',           starter: 'debate'      },
+  { civilian: 'Harambee',      imposter: 'Fundraiser',       starter: 'together'    },
+
+  // ── Sports ────────────────────────────────────────────────
+  { civilian: 'Football',      imposter: 'Rugby',            starter: 'kick'        },
+  { civilian: 'Basketball',    imposter: 'Netball',          starter: 'hoop'        },
+  { civilian: 'Swimming',      imposter: 'Diving',           starter: 'water'       },
+  { civilian: 'Boxing',        imposter: 'Wrestling',        starter: 'fight'       },
+  { civilian: 'Marathon',      imposter: 'Sprint',           starter: 'track'       },
+  { civilian: 'Volleyball',    imposter: 'Tennis',           starter: 'net'         },
+  { civilian: 'Golf',          imposter: 'Cricket',          starter: 'club'        },
+  { civilian: 'Chess',         imposter: 'Draughts',         starter: 'board'       },
+  { civilian: 'Afcon',         imposter: 'World Cup',        starter: 'trophy'      },
+  { civilian: 'Gor Mahia',     imposter: 'AFC Leopards',     starter: 'Nairobi'     },
 ];
 
+// Avatars
+const AVATARS = ['🦁','🐯','🦊','🐺','🦝','🐸','🦋','🦄','🐲','🦅','🦜','🐙','🦈','🐬','🦩'];
+
 type Phase =
-    | 'LOBBY'
-    | 'SHOW_WORD'      // Pass device, each player sees their word one by one
-    | 'GIVE_CLUES'     // Turn-based: each player gives one word clue per round
-    | 'DISCUSSION'     // After clues, discuss
-    | 'VOTING'         // Vote on who is imposter
-    | 'RESULTS';       // Reveal
+  | 'LOBBY'
+  | 'REVEALING'       // sequential word reveal (pass & play)
+  | 'STARTER'         // show starter word to everyone before clues
+  | 'GIVING_CLUES'    // turn-based
+  | 'VOTE_CHOICE'     // vote now or another round?
+  | 'VOTING'
+  | 'IMPOSTER_GUESS'  // caught imposter gets one guess
+  | 'RESULTS';
 
-const VOTING_TIME = 60;
-const DISCUSSION_TIME = 30;
-const CLUE_TIME = 20; // seconds per turn
+interface SharedState {
+  phase: Phase;
+  wordIdx: number;
+  imposterId: string;
+  revealIdx: number;         // which player is currently up for reveal
+  clueRound: number;
+  turnIdx: number;
+  clues: Record<string, string[]>;
+  votes: Record<string, string>;
+  eliminatedId: string;
+  imposterGuess: string;
+  result: 'crew_wins' | 'imposter_wins' | null;
+}
 
+const DEFAULT: SharedState = {
+  phase: 'LOBBY', wordIdx: 0, imposterId: '', revealIdx: 0,
+  clueRound: 1, turnIdx: 0, clues: {}, votes: {},
+  eliminatedId: '', imposterGuess: '', result: null,
+};
+
+// ── Matter.js vote canvas ──────────────────────────────────────
+const VoteCanvas: React.FC<{
+  players: { id: string; name: string }[];
+  votes: Record<string, string>;
+  myVote: string;
+  onVote: (id: string) => void;
+  canVote: boolean;
+  currentPlayerId: string;
+}> = ({ players, votes, myVote, onVote, canVote, currentPlayerId }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const engineRef = useRef<Matter.Engine | null>(null);
+  const chipsRef  = useRef<Matter.Body[]>([]);
+  const rafRef    = useRef<number>(0);
+  const prevRef   = useRef<Record<string, string>>({});
+
+  const targets = players.filter(p => p.id !== currentPlayerId);
+  const W = Math.min(360, window.innerWidth - 40);
+  const H = 200;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    canvas.width = W; canvas.height = H;
+
+    const engine = Matter.Engine.create({ gravity: { y: 1.5 } });
+    engineRef.current = engine;
+
+    const ground = Matter.Bodies.rectangle(W/2, H+10, W+40, 20, { isStatic: true });
+    const wL = Matter.Bodies.rectangle(-10, H/2, 20, H*2, { isStatic: true });
+    const wR = Matter.Bodies.rectangle(W+10, H/2, 20, H*2, { isStatic: true });
+    Matter.Composite.add(engine.world, [ground, wL, wR]);
+
+    const COLORS = ['#a29bfe','#fd79a8','#ffd600','#00b894','#ff7675','#74b9ff','#e17055'];
+
+    const tick = () => {
+      Matter.Engine.update(engine, 1000/60);
+      ctx.clearRect(0, 0, W, H);
+      chipsRef.current.forEach((b, bi) => {
+        const { x, y } = b.position;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(b.angle);
+        ctx.beginPath();
+        ctx.roundRect(-32, -13, 64, 26, 13);
+        ctx.fillStyle = (b as any)._color ?? COLORS[bi % COLORS.length];
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px "DM Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((b as any)._label ?? '', 0, 0);
+        ctx.restore();
+      });
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    tick();
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      Matter.Engine.clear(engine);
+    };
+  }, [W]);
+
+  useEffect(() => {
+    if (!engineRef.current) return;
+    const COLORS = ['#a29bfe','#fd79a8','#ffd600','#00b894','#ff7675','#74b9ff','#e17055'];
+    Object.entries(votes).forEach(([voterId, targetId]) => {
+      if (prevRef.current[voterId] === targetId) return;
+      prevRef.current[voterId] = targetId;
+
+      const tIdx = targets.findIndex(p => p.id === targetId);
+      if (tIdx < 0) return;
+      const colW = W / targets.length;
+      const tx = colW * tIdx + colW / 2;
+      const voterIdx = players.findIndex(p => p.id === voterId);
+      const chip = Matter.Bodies.rectangle(
+        tx + (Math.random() - 0.5) * 50, -15, 64, 26,
+        { restitution: 0.5, friction: 0.4, frictionAir: 0.01 }
+      );
+      (chip as any)._color = COLORS[voterIdx % COLORS.length];
+      (chip as any)._label = players.find(p => p.id === voterId)?.name ?? '?';
+      Matter.Composite.add(engineRef.current!.world, chip);
+      chipsRef.current.push(chip);
+    });
+  }, [votes]);
+
+  return (
+    <div className="imp-vc-wrap">
+      <canvas ref={canvasRef} className="imp-vc-canvas" />
+      <div className="imp-vc-row" style={{ gridTemplateColumns: `repeat(${targets.length}, 1fr)` }}>
+        {targets.map((p, i) => {
+          const vc = Object.values(votes).filter(v => v === p.id).length;
+          return (
+            <button key={p.id}
+              className={`imp-target ${myVote === p.id ? 'voted' : ''} ${!canVote ? 'done' : ''}`}
+              onClick={() => canVote && onVote(p.id)}
+              disabled={!canVote}
+            >
+              <span className="imp-ta">{AVATARS[i % AVATARS.length]}</span>
+              <span className="imp-tn">{p.name}</span>
+              <span className="imp-tv">{vc} vote{vc !== 1 ? 's' : ''}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ── Confetti ───────────────────────────────────────────────────
+const Confetti: React.FC<{ active: boolean }> = ({ active }) => {
+  if (!active) return null;
+  return (
+    <div className="imp-confetti" aria-hidden>
+      {Array.from({ length: 30 }, (_, i) => (
+        <div key={i} className={`imp-cp imp-cp-${i % 7}`}
+          style={{ '--i': i, '--r': Math.random().toFixed(2) } as React.CSSProperties} />
+      ))}
+    </div>
+  );
+};
+
+// ── Main ───────────────────────────────────────────────────────
 const ImposterGame: React.FC = () => {
-    const {
-        players, sharedState, setSharedState,
-        isHost, currentPlayerId, mode,
-    } = useMultiplayer();
+  const { players, sharedState, setSharedState, isHost, currentPlayerId, mode } = useMultiplayer();
+  const isPassPlay = mode === 'local';
 
-    const isPassPlay = mode === 'local';
+  // 3-step reveal state: waiting → revealed → done
+  // 'waiting' = blank card, tap to reveal
+  // 'revealed' = word visible, tap "I've seen it"
+  // 'done'    = blurred again, show pass button
+  const [revealStep, setRevealStep] = useState<'waiting' | 'revealed' | 'done'>('waiting');
+  const [clueStep, setClueStep] = useState<'typing' | 'passing'>('typing');
+  const [voteStep, setVoteStep] = useState<'passing' | 'voting'>('passing');
+  const [clueInput,   setClueInput]   = useState('');
+  const [guessInput,  setGuessInput]  = useState('');
+  const [confetti,    setConfetti]    = useState(false);
 
-    // Local state
-    const [clueInput, setClueInput] = useState('');
-    const [clueTimeLeft, setClueTimeLeft] = useState(CLUE_TIME);
-    const [votingTimeLeft, setVotingTimeLeft] = useState(VOTING_TIME);
-    const [discussionTimeLeft, setDiscussionTimeLeft] = useState(DISCUSSION_TIME);
+  const gs          = ({ ...DEFAULT, ...sharedState }) as SharedState;
+  const phase       = gs.phase;
+  const entry       = WORDS[gs.wordIdx] ?? WORDS[0];
+  const imposterId  = gs.imposterId;
+  const revealIdx   = gs.revealIdx;
+  const clueRound   = gs.clueRound;
+  const turnIdx     = gs.turnIdx;
+  const clues       = gs.clues;
+  const votes       = gs.votes;
 
-    const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const amIImposter = currentPlayerId === imposterId;
+  const myWord      = amIImposter ? entry.imposter : entry.civilian;
+  const isMyClueTurn = players[turnIdx]?.id === currentPlayerId;
+  const myVote      = votes[currentPlayerId ?? ''] ?? '';
 
-    // Shared state
-    const phase = (sharedState?.phase ?? 'LOBBY') as Phase;
-    const secretWord = sharedState?.secretWord ?? '';
-    const imposterId = sharedState?.imposterId ?? '';
-    const currentRevealIndex = sharedState?.currentRevealIndex ?? 0; // which player is seeing their word
-    const currentTurnIndex = sharedState?.currentTurnIndex ?? 0;    // whose turn to give clue
-    const clueRound = sharedState?.clueRound ?? 0;                   // which round (1, 2, 3...)
-    const cluesGiven = sharedState?.cluesGiven ?? {} as Record<string, string>; // playerId -> their clue word
-    const votes = sharedState?.votes ?? {} as Record<string, string>; // voterId -> votedForId
+  // Reset reveal step when player changes
+  useEffect(() => { setRevealStep('waiting'); }, [revealIdx, gs.wordIdx]);
 
-    // Derived
-    const amIImposter = currentPlayerId === imposterId;
+  useEffect(() => {
+    if (phase === 'RESULTS') {
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 3000);
+    }
+  }, [phase]);
 
-    // Count votes
-    const voteCounts: Record<string, number> = {};
-    Object.values(votes).forEach(v => { if (v) voteCounts[v] = (voteCounts[v] ?? 0) + 1; });
+  // ── Start ────────────────────────────────────────────────
+  const startGame = async () => {
+    if (!isHost || players.length < 3) return;
+    const wordIdx = Math.floor(Math.random() * WORDS.length);
+    const impIdx  = Math.floor(Math.random() * players.length);
+    const initClues: Record<string, string[]> = {};
+    players.forEach(p => { initClues[p.id] = []; });
+    await setSharedState({
+      ...DEFAULT, phase: 'REVEALING',
+      wordIdx, imposterId: players[impIdx].id,
+      revealIdx: 0, clues: initClues,
+    });
+  };
 
-    // Is it MY turn to give a clue?
-    const isMyClueTurn = players[currentTurnIndex]?.id === currentPlayerId;
+  // ── "I've seen it" — blur word, show pass button ─────────
+  const seenIt = () => setRevealStep('done');
 
-    // Did I already give a clue this round?
-    const myClueThisRound = cluesGiven[currentPlayerId ?? ''];
+  // ── "Pass to next" — advance revealIdx ──────────────────
+  const passToNext = async () => {
+    const next = revealIdx + 1;
+    if (next >= players.length) {
+      // All revealed → show starter word
+      await setSharedState({ phase: 'STARTER' });
+    } else {
+      await setSharedState({ revealIdx: next });
+    }
+  };
 
-    // How many clues per round = number of players
-    const cluesNeededPerRound = players.length;
-    const totalCluesThisRound = Object.keys(cluesGiven).filter(k =>
-        cluesGiven[k] !== ''
-    ).length;
+  // ── Starter acknowledged → start clues ──────────────────
+  const startClues = async () => {
+    await setSharedState({ phase: 'GIVING_CLUES', clueRound: 1, turnIdx: 0 });
+  };
 
-    // All players have given clues this round?
-    const roundComplete = totalCluesThisRound >= cluesNeededPerRound;
+  // ── Submit clue ──────────────────────────────────────────
+ const submitClue = async (skip = false) => {
+    // FIX: In local mode, the acting player is whoever's turn it is. 
+    const activeId = isPassPlay ? players[turnIdx].id : currentPlayerId;
+    if (!activeId) return;
 
-    // How many rounds we've gone through (each player gave one clue = 1 round)
-    const roundsCompleted = Math.floor(Object.values(cluesGiven).filter(c => c !== '').length / players.length);
+    const word = skip ? '(passed)' : clueInput.trim();
+    if (!skip && !word) return;
+    
+    const newClues = { ...clues };
+    newClues[activeId] = [...(newClues[activeId] ?? []), word];
+    setClueInput('');
+    
+    const next = turnIdx + 1;
+    if (next >= players.length) {
+      await setSharedState({ clues: newClues, phase: 'VOTE_CHOICE', turnIdx: next });
+    } else {
+      await setSharedState({ clues: newClues, turnIdx: next });
+      // FIX: Trigger the "pass the phone" screen for the next player
+      if (isPassPlay) setClueStep('passing'); 
+    }
+  };
 
-    // ─── Timers ────────────────────────────────────────────────
-    useEffect(() => {
-        if (phase === 'GIVE_CLUES') {
-            timerRef.current = setInterval(() => {
-                setClueTimeLeft(prev => {
-                    if (prev <= 1) {
-                        clearInterval(timerRef.current);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        } else if (phase === 'VOTING') {
-            timerRef.current = setInterval(() => {
-                setVotingTimeLeft(prev => {
-                    if (prev <= 1) {
-                        clearInterval(timerRef.current);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        } else if (phase === 'DISCUSSION') {
-            timerRef.current = setInterval(() => {
-                setDiscussionTimeLeft(prev => {
-                    if (prev <= 1) {
-                        clearInterval(timerRef.current);
-                        return 0;
-                    }
-                    return prev;
-                });
-            }, 1000);
-        } else {
-            clearInterval(timerRef.current);
-        }
-        return () => clearInterval(timerRef.current);
-    }, [phase]);
+  // ── Vote ─────────────────────────────────────────────────
+  const castVote = async (targetId: string) => {
+    // FIX: Get the ID of the person holding the phone
+    const voterId = isPassPlay ? players[turnIdx]?.id : currentPlayerId;
+    if (!voterId) return;
+    
+    // Prevent double voting in online mode
+    if (!isPassPlay && votes[currentPlayerId ?? '']) return;
 
-    // ─── Start Game (Host) ─────────────────────────────────────
-    const handleStartGame = async () => {
-        if (!isHost || players.length < 3) return;
+    const newVotes = { ...votes, [voterId]: targetId };
+    
+    if (Object.keys(newVotes).length >= players.length) {
+      // Everyone voted, tally the results
+      const counts: Record<string, number> = {};
+      Object.values(newVotes).forEach(v => { counts[v] = (counts[v] ?? 0) + 1; });
+      const eliminated = Object.entries(counts).sort((a,b) => b[1]-a[1])[0]?.[0] ?? '';
+      
+      if (eliminated === imposterId) {
+        await setSharedState({ votes: newVotes, eliminatedId: eliminated, phase: 'IMPOSTER_GUESS' });
+      } else {
+        await setSharedState({ votes: newVotes, eliminatedId: eliminated, result: 'imposter_wins', phase: 'RESULTS' });
+      }
+    } else {
+      // Not everyone has voted, go to the next person
+      await setSharedState({ votes: newVotes, turnIdx: turnIdx + 1 });
+      if (isPassPlay) setVoteStep('passing');
+    }
+  };
 
-        const word = WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)];
-        const imposterIdx = Math.floor(Math.random() * players.length);
+  // ── Imposter guess ───────────────────────────────────────
+  const submitGuess = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!guessInput.trim()) return;
+    const correct = guessInput.trim().toLowerCase() === entry.civilian.toLowerCase();
+    await setSharedState({
+      imposterGuess: guessInput.trim(),
+      result: correct ? 'imposter_wins' : 'crew_wins',
+      phase: 'RESULTS',
+    });
+    setGuessInput('');
+  };
 
-        await setSharedState({
-            phase: 'SHOW_WORD',
-            secretWord: word,
-            imposterId: players[imposterIdx].id,
-            currentRevealIndex: 0,
-            currentTurnIndex: 0,
-            clueRound: 0,
-            cluesGiven: {},
-            votes: {},
-        });
-    };
+  const continueRound = async () => {
+    if (!isHost || clueRound >= 3) return;
+    if (isPassPlay) setClueStep('passing'); 
+    await setSharedState({ phase: 'GIVING_CLUES', clueRound: clueRound + 1, turnIdx: 0 });
+  };
 
-    // ─── Player seen their word and tapped "Next" ─────────────
-    const handleRevealNext = async () => {
-        const nextIndex = currentRevealIndex + 1;
+  const goVote = async () => {
+    if (!isHost) return;
+    if (isPassPlay) setVoteStep('passing'); // Trigger the passing screen
+    await setSharedState({ phase: 'VOTING', votes: {}, turnIdx: 0 }); // Reset turns to 0
+  };
 
-        if (nextIndex >= players.length) {
-            // All players have seen their words → start giving clues
-            await setSharedState({
-                phase: 'GIVE_CLUES',
-                clueRound: 1,
-                currentTurnIndex: 0,
-            });
-            setClueTimeLeft(CLUE_TIME);
-        } else {
-            await setSharedState({ currentRevealIndex: nextIndex });
-        }
-    };
+  const restart = async () => {
+    if (!isHost) return;
+    await setSharedState({ ...DEFAULT });
+  };
 
-    // ─── Submit clue ───────────────────────────────────────────
-    const handleSubmitClue = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!clueInput.trim() || !currentPlayerId) return;
-        if (myClueThisRound) return; // Already gave clue
+  if (!players.length) return (
+    <div className="imp-container">
+      <div className="imp-center">
+        <h1 className="imp-title">🕵️ IMPOSTER</h1>
+        <a href="/lobby?game=imposter" className="imp-btn imp-btn-start">Go to Lobby</a>
+      </div>
+    </div>
+  );
 
-        const newClues = { ...cluesGiven, [currentPlayerId]: clueInput.trim() };
-        await setSharedState({ cluesGiven: newClues });
-        setClueInput('');
+  // ── All clues flattened for display ─────────────────────
+  const allClues = players.flatMap(p =>
+    (clues[p.id] ?? []).map((c, ri) => ({ name: p.name, clue: c, round: ri + 1 }))
+  );
 
-        // Move to next player's turn
-        const nextTurn = currentTurnIndex + 1;
+  // ─────────────────────── RENDERS ─────────────────────────
 
-        if (nextTurn >= players.length) {
-            // Round complete! Move to discussion or next round
-            if (clueRound >= 3) {
-                // Done giving clues - go to discussion
-                await setSharedState({ phase: 'DISCUSSION' });
-                setDiscussionTimeLeft(DISCUSSION_TIME);
-            } else {
-                // Next round
-                await setSharedState({
-                    clueRound: clueRound + 1,
-                    currentTurnIndex: 0,
-                });
-                setClueTimeLeft(CLUE_TIME);
-            }
-        } else {
-            await setSharedState({ currentTurnIndex: nextTurn });
-            setClueTimeLeft(CLUE_TIME);
-        }
-    };
+  const renderLobby = () => (
+    <div className="imp-center imp-lobby fade-up">
+      <div className="imp-lobby-icon">🕵️</div>
+      <h1 className="imp-title">IMPOSTER</h1>
+      <p className="imp-sub">One player has a different word. Find them — or survive undetected.</p>
+      <div className="imp-players">
+        {players.map((p, i) => (
+          <div key={p.id} className="imp-player-chip">
+            {AVATARS[i % AVATARS.length]} {p.isHost ? '👑 ' : ''}{p.name}
+          </div>
+        ))}
+      </div>
+      <div className="imp-rules">
+        <div className="imp-rule"><span>🔤</span>Everyone gets the word. Imposter gets a similar but different one.</div>
+        <div className="imp-rule"><span>💬</span>Take turns giving one-word clues (up to 3 rounds).</div>
+        <div className="imp-rule"><span>🗳️</span>Vote out the imposter — but they get one last guess!</div>
+        {isPassPlay && <div className="imp-rule"><span>📱</span>One device — each player reveals privately then passes.</div>}
+      </div>
+      {isHost
+        ? players.length >= 3
+          ? <button className="imp-btn imp-btn-start" onClick={startGame}>START GAME →</button>
+          : <p className="imp-waiting">Need at least 3 players</p>
+        : <p className="imp-waiting">Waiting for host…</p>}
+      <a href="/" className="imp-exit">← Exit to Hub</a>
+    </div>
+  );
 
-    // ─── Skip clue ────────────────────────────────────────────
-    const handleSkipClue = async () => {
-        if (!currentPlayerId || myClueThisRound) return;
+  // Pass-and-play reveal: sequential, one device
+  // Flow: waiting → tap card → revealed → tap "I've seen it" → done → tap "Pass" → next player
+  const renderRevealing = () => {
+    const player = players[revealIdx];
+    if (!player) return null;
+    const thisWord = player.id === imposterId ? entry.imposter : entry.civilian;
+    const isImp    = player.id === imposterId;
+    const isLast   = revealIdx + 1 >= players.length;
+    const nextName = !isLast ? players[revealIdx + 1]?.name : '';
 
-        const newClues = { ...cluesGiven, [currentPlayerId]: '' };
-        await setSharedState({ cluesGiven: newClues });
-        setClueInput('');
+    return (
+      <div className="imp-word-reveal fade-up">
 
-        const nextTurn = currentTurnIndex + 1;
-
-        if (nextTurn >= players.length) {
-            if (clueRound >= 3) {
-                await setSharedState({ phase: 'DISCUSSION' });
-                setDiscussionTimeLeft(DISCUSSION_TIME);
-            } else {
-                await setSharedState({
-                    clueRound: clueRound + 1,
-                    currentTurnIndex: 0,
-                });
-                setClueTimeLeft(CLUE_TIME);
-            }
-        } else {
-            await setSharedState({ currentTurnIndex: nextTurn });
-            setClueTimeLeft(CLUE_TIME);
-        }
-    };
-
-    // ─── Start discussion (host) ───────────────────────────────
-    const handleStartDiscussion = () => {
-        setSharedState({ phase: 'DISCUSSION' });
-        setDiscussionTimeLeft(DISCUSSION_TIME);
-    };
-
-    // ─── Start voting (host or auto) ──────────────────────────
-    const handleStartVoting = () => {
-        setSharedState({ phase: 'VOTING' });
-        setVotingTimeLeft(VOTING_TIME);
-    };
-
-    // ─── Vote ─────────────────────────────────────────────────
-    const handleVote = async (targetId: string) => {
-        if (phase !== 'VOTING' || !currentPlayerId) return;
-        if (votes[currentPlayerId]) return;
-
-        const newVotes = { ...votes, [currentPlayerId]: targetId };
-        await setSharedState({ votes: newVotes });
-
-        if (Object.keys(newVotes).length >= players.length) {
-            await setSharedState({ phase: 'RESULTS' });
-        }
-    };
-
-    // ─── Play again ────────────────────────────────────────────
-    const handlePlayAgain = () => {
-        if (!isHost) return;
-        setSharedState({
-            phase: 'LOBBY',
-            secretWord: '',
-            imposterId: '',
-            currentRevealIndex: 0,
-            currentTurnIndex: 0,
-            clueRound: 0,
-            cluesGiven: {},
-            votes: {},
-        });
-    };
-
-    // ─── Get my secret word ────────────────────────────────────
-    const getMySecretWord = () => {
-        // For the player whose turn it is to see their word
-        const playerAtReveal = players[currentRevealIndex];
-        if (!playerAtReveal) return '';
-
-        if (playerAtReveal.id === imposterId) {
-            return null; // Imposter sees nothing
-        }
-        return secretWord;
-    };
-
-    // ─── Render: Lobby ─────────────────────────────────────────
-    const renderLobby = () => (
-        <div className="imposter-lobby">
-            <div className="lobby-icon">🕵️</div>
-            <h1 className="imposter-title">IMPOSTER</h1>
-            <p className="subtitle">One player has no word. Find them!</p>
-
-            <div className="players-list">
-                {players.map(p => (
-                    <span key={p.id} className="player-tag">
-                        {p.isHost && '👑 '}{p.name}
-                    </span>
-                ))}
-            </div>
-
-            {isHost ? (
-                players.length >= 3 ? (
-                    <button className="imposter-btn start-game" onClick={handleStartGame}>
-                        START GAME
-                    </button>
-                ) : (
-                    <p className="waiting-msg">Need at least 3 players</p>
-                )
-            ) : (
-                <p className="blink waiting-msg">Waiting for host...</p>
-            )}
-
-            <a href="/" className="exit-link">Exit to Hub</a>
+        {/* Who's turn + progress */}
+        <div className="imp-reveal-header">
+          <div className="imp-reveal-who">
+            {AVATARS[revealIdx % AVATARS.length]} {player.name}
+          </div>
+          <div className="imp-reveal-progress">
+            {players.map((_, i) => (
+              <div key={i} className={`imp-rdot ${i < revealIdx ? 'done' : i === revealIdx ? 'current' : ''}`} />
+            ))}
+          </div>
         </div>
+
+        {/* Step hint */}
+        <p className="imp-reveal-hint">
+          {revealStep === 'waiting'  && `${player.name} — tap the card to see your word`}
+          {revealStep === 'revealed' && 'Memorise your word, then tap below'}
+          {revealStep === 'done'     && `Pass the phone to ${isLast ? 'everyone to gather' : nextName}`}
+        </p>
+
+        {/* Word card — only clickable in 'waiting' state */}
+        <div
+          className={`imp-word-card ${isImp ? 'imposter' : 'crew'} ${revealStep === 'revealed' ? 'visible' : 'hidden'}`}
+          onClick={() => revealStep === 'waiting' && setRevealStep('revealed')}
+        >
+          {revealStep === 'revealed' ? (
+            <>
+              <div className="imp-word-category">{isImp ? '😈 YOU ARE THE IMPOSTER' : '✅ CREW MEMBER'}</div>
+              <div className="imp-word-main">{thisWord}</div>
+              {isImp && <div className="imp-imposter-badge">You have a different word. Blend in!</div>}
+            </>
+          ) : (
+            <div className="imp-word-tap-hint">
+              {revealStep === 'waiting' ? '👆 Tap to reveal' : '🔒 Word hidden'}
+            </div>
+          )}
+        </div>
+
+        {/* Step 2: seen it */}
+        {revealStep === 'revealed' && (
+          <button className="imp-btn imp-btn-seen" onClick={seenIt}>
+            ✓ I've seen it — hide word
+          </button>
+        )}
+
+        {/* Step 3: pass to next */}
+        {revealStep === 'done' && (
+          <button className="imp-btn imp-btn-pass" onClick={passToNext}>
+            {isLast
+              ? 'Everyone has seen — continue →'
+              : `Pass to ${nextName} →`}
+          </button>
+        )}
+
+      </div>
     );
+  };
 
-    // ─── Render: Show Word (pass device) ───────────────────────
-    const renderShowWord = () => {
-        const player = players[currentRevealIndex];
-        if (!player) return null;
+  // After all reveals: show starter word to everyone
+  const renderStarter = () => (
+    <div className="imp-center fade-up">
+      <p className="imp-starter-eyebrow">Everyone gather round</p>
+      <h2 className="imp-starter-heading">The starter word is:</h2>
+      <div className="imp-starter-big">
+        <span>{entry.starter}</span>
+      </div>
+      <p className="imp-starter-sub">
+        First player gives a clue related to their word — without saying it.<br/>
+        Then go round the group. Good luck.
+      </p>
+      {isHost && (
+        <button className="imp-btn imp-btn-start" onClick={startClues}>
+          Start Clues →
+        </button>
+      )}
+      {!isHost && <p className="imp-waiting">Waiting for host…</p>}
+    </div>
+  );
 
-        // In pass & play, this screen shows WHO should look (player at revealIndex)
-        // Anyone can tap to advance (like passing the device)
-        const myWord = player.id === imposterId ? null : secretWord;
-        const isImposter = player.id === imposterId;
+  const renderGivingClues = () => {
+    const curr = players[turnIdx];
+    
+    // FIX: In Pass & Play, it's ALWAYS your turn because you're holding the device
+    const isMyTurn = isPassPlay || curr?.id === currentPlayerId;
+    
+    // FIX: Get the correct secret word for whoever is holding the phone
+    const activePlayerId = isPassPlay ? curr?.id : currentPlayerId;
+    const activeWord = activePlayerId === imposterId ? entry.imposter : entry.civilian;
 
-        return (
-            <div className="word-reveal-screen">
-                <div className="lobby-icon">📱</div>
-                <h2 className="reveal-label">
-                    Pass to: {player.name}
-                </h2>
-                <p className="reveal-hint">Hand the device privately</p>
-
-                <button className="imposter-btn continue-btn" onClick={handleRevealNext}>
-                    Show Word →
-                </button>
-            </div>
-        );
-    };
-
-    // ─── Render: Give Clues (turn-based) ───────────────────────
-    const renderGiveClues = () => {
-        const currentPlayer = players[currentTurnIndex];
-        const isMyTurn = currentPlayer?.id === currentPlayerId;
-
-        // Show all clues so far (from previous rounds)
-        const allClues = Object.entries(cluesGiven)
-            .filter(([_, clue]) => clue !== '')
-            .map(([playerId, clue]) => ({
-                name: players.find(p => p.id === playerId)?.name ?? '?',
-                clue,
-            }));
-
-        return (
-            <div className="word-entry-screen">
-                <div className="round-indicator">
-                    Round {clueRound} of 3
-                </div>
-
-                <div className="timer-circle" style={{
-                    '--progress': `${(clueTimeLeft / CLUE_TIME) * 100}%`
-                } as React.CSSProperties}>
-                    <span className="timer-number">{clueTimeLeft}</span>
-                    <span className="timer-label">seconds</span>
-                </div>
-
-                <div className="the-word-display">
-                    <span className="word-category">Your secret word</span>
-                    <span className="main-word glow-purple">
-                        {isPassPlay ? 'Look at screen' : (amIImposter ? '???' : secretWord)}
-                    </span>
-                </div>
-
-                {/* Show all given clues */}
-                {allClues.length > 0 && (
-                    <div className="all-entries" style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                        {allClues.map((item, i) => (
-                            <div key={i} className="entry-row">
-                                <span className="entry-player">{item.name}:</span>
-                                <span className="entry-word">{item.clue}</span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* Current player's turn indicator */}
-                <div className="discussion-header" style={{ marginTop: '1rem' }}>
-                    <h1 style={{ fontSize: '1.5rem' }}>
-                        {isMyTurn ? "🎯 YOUR TURN" : `Waiting for ${currentPlayer?.name}...`}
-                    </h1>
-                </div>
-
-                {/* Input for current player */}
-                {isMyTurn && !myClueThisRound ? (
-                    <form className="word-form" onSubmit={handleSubmitClue}>
-                        <input
-                            type="text"
-                            className="word-input"
-                            placeholder="Type ONE word clue..."
-                            value={clueInput}
-                            onChange={e => setClueInput(e.target.value)}
-                            maxLength={30}
-                            autoFocus
-                        />
-                        <div className="button-row">
-                            <button type="button" className="pass-btn" onClick={handleSkipClue}>
-                                PASS
-                            </button>
-                            <button type="submit" className="submit-btn" disabled={!clueInput.trim()}>
-                                SAY IT
-                            </button>
-                        </div>
-                    </form>
-                ) : (
-                    myClueThisRound && (
-                        <p className="blink waiting-msg">Clue given! Waiting...</p>
-                    )
-                )}
-
-                {/* Turn order indicator */}
-                <div className="entries-summary">
-                    {players.map((p, i) => {
-                        const hasClue = cluesGiven[p.id] && cluesGiven[p.id] !== '';
-                        return (
-                            <span key={p.id} className={`player-status ${hasClue ? 'ready' : ''}`}>
-                                {i === currentTurnIndex && '👉 '}{p.name} {hasClue ? '✓' : '...'}
-                            </span>
-                        );
-                    })}
-                </div>
-            </div>
-        );
-    };
-
-    // ─── Render: Discussion ────────────────────────────────────
-    const renderDiscussion = () => {
-        const allClues = Object.entries(cluesGiven).map(([playerId, clue]) => ({
-            name: players.find(p => p.id === playerId)?.name ?? '?',
-            clue: clue || '(passed)',
-        }));
-
-        return (
-            <div className="discussion-screen">
-                <div className="discussion-header">
-                    <h1>💬 DISCUSSION</h1>
-                    <p>Talk it out! Who seems suspicious?</p>
-                </div>
-
-                <div className="timer-bar-container">
-                    <div
-                        className="timer-bar-fill voting"
-                        style={{ width: `${(discussionTimeLeft / DISCUSSION_TIME) * 100}%` }}
-                    />
-                </div>
-                <span className="timer-text">{discussionTimeLeft}s</span>
-
-                <div className="all-entries">
-                    {allClues.map((item, i) => (
-                        <div key={i} className="entry-row">
-                            <span className="entry-player">{item.name}:</span>
-                            <span className="entry-word">{item.clue}</span>
-                        </div>
-                    ))}
-                </div>
-
-                {isHost && (
-                    <button className="imposter-btn vote-start-btn" onClick={handleStartVoting}>
-                        START VOTING 🗳️
-                    </button>
-                )}
-            </div>
-        );
-    };
-
-    // ─── Render: Voting ─────────────────────────────────────────
-    const renderVoting = () => {
-        const myVote = votes[currentPlayerId ?? ''];
-
-        return (
-            <div className="voting-screen">
-                <h1 className="phase-title glow-red">WHO'S THE IMPOSTER?</h1>
-
-                <div className="timer-circle voting" style={{
-                    '--progress': `${(votingTimeLeft / VOTING_TIME) * 100}%`
-                } as React.CSSProperties}>
-                    <span className="timer-number">{votingTimeLeft}</span>
-                    <span className="timer-label">seconds</span>
-                </div>
-
-                <p className="vote-instruction">Tap to vote</p>
-
-                <div className="target-grid">
-                    {players.filter(p => p.id !== currentPlayerId).map(p => (
-                        <button
-                            key={p.id}
-                            className={`target-card ${myVote === p.id ? 'selected' : ''}`}
-                            onClick={() => handleVote(p.id)}
-                            disabled={!!myVote}
-                        >
-                            <div className="avatar">🎭</div>
-                            <span className="target-name">{p.name}</span>
-                            {voteCounts[p.id] > 0 && (
-                                <span className="vote-count-badge">{voteCounts[p.id]}</span>
-                            )}
-                        </button>
-                    ))}
-                </div>
-
-                {myVote && <p className="blink waiting-msg">Vote cast!</p>}
-            </div>
-        );
-    };
-
-    // ─── Render: Results ─────────────────────────────────────────
-    const renderResults = () => {
-        let maxVotes = 0;
-        let votedOutId: string | null = null;
-        Object.entries(voteCounts).forEach(([id, count]) => {
-            if (count > maxVotes) { maxVotes = count; votedOutId = id; }
-        });
-
-        const imposterPlayer = players.find(p => p.id === imposterId);
-        const wasCaught = votedOutId === imposterId;
-
-        return (
-            <div className="results-screen">
-                <div className={`result-banner ${wasCaught ? 'win' : 'lose'}`}>
-                    {wasCaught ? (
-                        <>
-                            <h1 className="result-title">🎉 IMPOSTER CAUGHT!</h1>
-                            <p>The crew wins!</p>
-                        </>
-                    ) : (
-                        <>
-                            <h1 className="result-title">😈 IMPOSTER ESCAPED!</h1>
-                            <p>The imposter got away!</p>
-                        </>
-                    )}
-                </div>
-
-                <div className="reveal-card final">
-                    <span className="reveal-label">The Secret Word Was</span>
-                    <span className="the-word large">{secretWord}</span>
-
-                    <div className="imposter-reveal">
-                        <span>The Imposter was:</span>
-                        <span className="imposter-name">
-                            {imposterPlayer?.name}
-                            {amIImposter && ' (YOU!)'}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="votes-summary">
-                    <h3>🗳️ Votes</h3>
-                    {players.map(p => (
-                        <div key={p.id} className="vote-row">
-                            <span className="voter">{p.name}</span>
-                            <span className="arrow">→</span>
-                            <span className="voted-for">
-                                {votes[p.id] ? players.find(pl => pl.id === votes[p.id])?.name : 'no vote'}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-
-                {isHost && (
-                    <button className="imposter-btn start-game" onClick={handlePlayAgain}>
-                        PLAY AGAIN
-                    </button>
-                )}
-
-                <a href="/" className="exit-link">Exit to Hub</a>
-            </div>
-        );
-    };
-
-    // ─── No Players ────────────────────────────────────────────
-    if (players.length === 0) {
-        return (
-            <div className="imposter-container state-lobby">
-                <div className="imposter-lobby">
-                    <h2>Please enter via Lobby</h2>
-                    <a href="/lobby?game=imposter" className="imposter-btn start-game">Go to Lobby</a>
-                </div>
-            </div>
-        );
+    // FIX: Show the interstitial passing screen between turns
+    if (isPassPlay && clueStep === 'passing') {
+      return (
+        <div className="imp-center fade-up">
+          <div className="imp-vc-icon">📱</div>
+          <h2 className="imp-vc-title">Pass the device</h2>
+          <p className="imp-vc-sub">Hand the phone to <strong>{curr?.name}</strong></p>
+          <button className="imp-btn imp-btn-start" onClick={() => setClueStep('typing')}>
+            I'm {curr?.name} →
+          </button>
+        </div>
+      );
     }
 
-    // ─── Main Render ────────────────────────────────────────────
     return (
-        <div className={`imposter-container state-${phase.toLowerCase().replace('_', '')}`}>
-            {phase === 'LOBBY' && renderLobby()}
-            {phase === 'SHOW_WORD' && renderShowWord()}
-            {phase === 'GIVE_CLUES' && renderGiveClues()}
-            {phase === 'DISCUSSION' && renderDiscussion()}
-            {phase === 'VOTING' && renderVoting()}
-            {phase === 'RESULTS' && renderResults()}
+      <div className="imp-clues fade-up">
+        <div className="imp-clues-header">
+          <div className="imp-round-badge">Round {clueRound} / 3</div>
+          <div className="imp-turn-indicator">
+            {isMyTurn ? '🎯 YOUR TURN' : `${curr?.name ?? '?'}'s turn`}
+          </div>
         </div>
+
+        <div className="imp-starter-reminder">
+          <span>💡</span>
+          <em>Starter word: <strong>{entry.starter}</strong></em>
+        </div>
+
+        {allClues.length > 0 && (
+          <div className="imp-clues-list">
+            {allClues.map((l, i) => (
+              <div key={i} className={`imp-clue-row r${l.round}`}>
+                <span className="imp-clue-player">{l.name}</span>
+                <span className="imp-clue-sep">→</span>
+                <span className="imp-clue-word">{l.clue}</span>
+                <span className="imp-clue-round">R{l.round}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isMyTurn ? (
+          <div className="imp-clue-form">
+            <p className="imp-clue-prompt">
+              Your word: <strong>{activeWord}</strong> — give one word without saying it
+            </p>
+            <div className="imp-clue-input-row">
+              <input
+                className="imp-input"
+                type="text"
+                placeholder="One word…"
+                value={clueInput}
+                onChange={e => setClueInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && clueInput.trim() && submitClue()}
+                maxLength={25}
+                autoFocus
+                autoComplete="off"
+              />
+              <button className="imp-btn imp-btn-say" onClick={() => submitClue()}
+                disabled={!clueInput.trim()}>SAY IT</button>
+            </div>
+            <button className="imp-skip-btn" onClick={() => submitClue(true)}>PASS →</button>
+          </div>
+        ) : (
+          <p className="imp-waiting">Waiting for {curr?.name}…</p>
+        )}
+
+        <div className="imp-player-status-row">
+          {players.map((p, i) => {
+            const done = (clues[p.id]?.length ?? 0) >= clueRound;
+            return (
+              <div key={p.id} className={`imp-ps-chip ${i === turnIdx ? 'current' : done ? 'done' : ''}`}>
+                {AVATARS[i % AVATARS.length]} {p.name}{done ? ' ✓' : ''}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     );
+  };
+
+  const renderVoteChoice = () => (
+    <div className="imp-center fade-up">
+      <div className="imp-vc-icon">🤔</div>
+      <h2 className="imp-vc-title">Round {clueRound} done</h2>
+      <p className="imp-vc-sub">Ready to vote or need another round?</p>
+      <div className="imp-clues-list" style={{ width: '100%', maxHeight: 220, overflowY: 'auto' }}>
+        {allClues.map((l, i) => (
+          <div key={i} className={`imp-clue-row r${l.round}`}>
+            <span className="imp-clue-player">{l.name}</span>
+            <span className="imp-clue-sep">→</span>
+            <span className="imp-clue-word">{l.clue}</span>
+            <span className="imp-clue-round">R{l.round}</span>
+          </div>
+        ))}
+      </div>
+      {isHost ? (
+        <div className="imp-vc-actions">
+          <button className="imp-btn imp-btn-vote" onClick={goVote}>🗳️ Vote Now</button>
+          {clueRound < 3 && (
+            <button className="imp-btn imp-btn-continue" onClick={continueRound}>🔁 Another Round</button>
+          )}
+        </div>
+      ) : <p className="imp-waiting">Waiting for host…</p>}
+    </div>
+  );
+
+  const renderVoting = () => {
+    const curr = players[turnIdx];
+    
+    // Determine who is actually looking at the screen right now
+    const activeVoterId = isPassPlay ? curr?.id : currentPlayerId;
+    const hasVotedOnline = !isPassPlay && !!myVote;
+
+    // Show the pass screen in local mode
+    if (isPassPlay && voteStep === 'passing' && curr) {
+      return (
+        <div className="imp-center fade-up">
+          <div className="imp-vc-icon">📱</div>
+          <h2 className="imp-vc-title">Time to Vote</h2>
+          <p className="imp-vc-sub">Pass the device to <strong>{curr.name}</strong></p>
+          <button className="imp-btn imp-btn-start" onClick={() => setVoteStep('voting')}>
+            I'm {curr.name} →
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="imp-voting fade-up">
+        <h2 className="imp-voting-title">🗳️ WHO'S THE IMPOSTER?</h2>
+        
+        {isPassPlay ? (
+          <p className="imp-voting-sub"><strong>{curr?.name}</strong>, tap to cast your vote!</p>
+        ) : (
+          <p className="imp-voting-sub">
+            {hasVotedOnline ? 'Vote cast — watch the chips!' : 'Tap to vote'}
+          </p>
+        )}
+        
+        <VoteCanvas
+          players={players}
+          votes={votes}
+          // In local, we pass empty string so the UI doesn't lock up for the next player
+          myVote={isPassPlay ? '' : myVote} 
+          onVote={castVote}
+          canVote={isPassPlay ? true : !myVote}
+          currentPlayerId={activeVoterId ?? ''} 
+        />
+        
+        <p className="imp-vote-count">{Object.keys(votes).length}/{players.length} voted</p>
+        
+        {isPassPlay && (
+          <p className="imp-voting-warning" style={{marginTop: 10, fontSize: '0.9rem', opacity: 0.7}}>
+            (Keep your vote secret!)
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  const renderImposterGuess = () => (
+    <div className="imp-center fade-up">
+      <div className="imp-guess-icon">😈</div>
+      <h2 className="imp-guess-title">IMPOSTER CAUGHT!</h2>
+      <p className="imp-guess-sub">
+        {players.find(p => p.id === gs.eliminatedId)?.name} — you were the imposter!<br/>
+        But guess the real word and you still win.
+      </p>
+      {currentPlayerId === imposterId ? (
+        <form className="imp-guess-form" onSubmit={submitGuess}>
+          <input className="imp-input imp-guess-input" type="text"
+            placeholder="What was the real word?"
+            value={guessInput}
+            onChange={e => setGuessInput(e.target.value)}
+            autoFocus />
+          <button type="submit" className="imp-btn imp-btn-guess" disabled={!guessInput.trim()}>
+            FINAL ANSWER →
+          </button>
+        </form>
+      ) : (
+        <p className="imp-waiting">{players.find(p => p.id === imposterId)?.name} is guessing…</p>
+      )}
+    </div>
+  );
+
+  const renderResults = () => {
+    const crewWin = gs.result === 'crew_wins';
+    const imp = players.find(p => p.id === imposterId);
+    return (
+      <div className="imp-results fade-up">
+        <Confetti active={confetti} />
+        <div className={`imp-result-banner ${crewWin ? 'crew' : 'imposter'}`}>
+          <div className="imp-result-icon">{crewWin ? '🎉' : '😈'}</div>
+          <h1 className="imp-result-title">{crewWin ? 'IMPOSTER CAUGHT!' : 'IMPOSTER WINS!'}</h1>
+          <p className="imp-result-sub">{crewWin ? `${imp?.name} was exposed!` : `${imp?.name} got away!`}</p>
+        </div>
+        <div className="imp-reveal-card">
+          <div className="imp-reveal-row">
+            <span className="imp-reveal-label-sm">Crew's word</span>
+            <span className="imp-reveal-word">{entry.civilian}</span>
+          </div>
+          <div className="imp-reveal-row">
+            <span className="imp-reveal-label-sm">Imposter's word</span>
+            <span className="imp-reveal-word imp-imposter-color">{entry.imposter}</span>
+          </div>
+          <div className="imp-reveal-row">
+            <span className="imp-reveal-label-sm">Starter word</span>
+            <span className="imp-reveal-word">{entry.starter}</span>
+          </div>
+          {gs.imposterGuess && (
+            <div className="imp-reveal-row">
+              <span className="imp-reveal-label-sm">Imposter guessed</span>
+              <span className="imp-reveal-word">
+                "{gs.imposterGuess}" — {gs.result === 'imposter_wins' ? '✓ Correct!' : '✗ Wrong'}
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="imp-results-clues">
+          <h3>All Clues</h3>
+          {players.map((p, pi) => (
+            <div key={p.id} className="imp-results-player-clues">
+              <span className="imp-rpc-name">{AVATARS[pi % AVATARS.length]} {p.name}{p.id === imposterId ? ' 😈' : ''}</span>
+              <span className="imp-rpc-clues">{(clues[p.id] ?? []).join(' → ') || '(no clues)'}</span>
+            </div>
+          ))}
+        </div>
+        {isHost && <button className="imp-btn imp-btn-start" onClick={restart}>PLAY AGAIN</button>}
+        <a href="/" className="imp-exit">← Exit to Hub</a>
+      </div>
+    );
+  };
+
+  return (
+    <div className={`imp-container imp-phase-${phase.toLowerCase()}`}>
+      <div className="imp-bg-blob imp-blob-1" />
+      <div className="imp-bg-blob imp-blob-2" />
+      <div className="imp-bg-blob imp-blob-3" />
+
+      {phase === 'LOBBY'          && renderLobby()}
+      {phase === 'REVEALING'      && renderRevealing()}
+      {phase === 'STARTER'        && renderStarter()}
+      {phase === 'GIVING_CLUES'   && renderGivingClues()}
+      {phase === 'VOTE_CHOICE'    && renderVoteChoice()}
+      {phase === 'VOTING'         && renderVoting()}
+      {phase === 'IMPOSTER_GUESS' && renderImposterGuess()}
+      {phase === 'RESULTS'        && renderResults()}
+    </div>
+  );
 };
 
 export default ImposterGame;
