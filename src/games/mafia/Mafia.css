@@ -857,3 +857,295 @@
   .mf-day-inner, .mf-vote-inner { padding-top: 4rem; }
   .mf-sun { width: 55px; height: 55px; }
 }
+/* =============================================================================
+   NEW ADDITIONS — Role Reveal + English strings + fixes
+   ============================================================================= */
+
+/* ── Role reveal ────────────────────────────────── */
+.mf-reveal-wrap {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 28px 20px 48px;
+  position: relative;
+  z-index: 1;
+}
+
+.mf-reveal-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mf-reveal-av {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--mf-red);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mf-disp);
+  font-size: 1.4rem;
+  color: #fff;
+}
+.mf-reveal-name {
+  font-family: var(--mf-disp);
+  font-size: 1.8rem;
+  letter-spacing: 0.06em;
+}
+
+.mf-reveal-dots {
+  display: flex;
+  gap: 8px;
+}
+.mf-rdot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--mf-surface);
+  border: 2px solid var(--mf-border);
+  transition: all 0.3s;
+}
+.mf-rdot.done { background: var(--mf-green); border-color: var(--mf-green); }
+.mf-rdot.cur  { background: var(--mf-red);   border-color: var(--mf-red); animation: mfBlink 0.8s ease-in-out infinite; }
+
+.mf-reveal-hint {
+  color: var(--mf-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 0;
+}
+
+/* Role card — tappable */
+.mf-role-card {
+  width: 100%;
+  border-radius: 20px;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid;
+  cursor: pointer;
+  min-height: 160px;
+  justify-content: center;
+  transition: transform 0.12s;
+}
+.mf-role-card:active { transform: scale(0.97); }
+.mf-role-card.closed {
+  background: var(--mf-surface);
+  border-color: var(--mf-border);
+}
+.mf-role-card.closed:hover { border-color: rgba(255,255,255,0.2); }
+.mf-role-card.open.mafia   {
+  background: rgba(232,24,42,0.1);
+  border-color: var(--mf-red);
+  box-shadow: 0 0 40px rgba(232,24,42,0.2);
+  cursor: default;
+  animation: mfCardReveal 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.mf-role-card.open.village {
+  background: rgba(0,232,135,0.08);
+  border-color: var(--mf-green);
+  box-shadow: 0 0 30px rgba(0,232,135,0.15);
+  cursor: default;
+  animation: mfCardReveal 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes mfCardReveal {
+  from { opacity: 0; transform: scale(0.8) rotateX(-15deg); }
+  to   { opacity: 1; transform: scale(1) rotateX(0); }
+}
+
+.mf-role-card-tap {
+  color: var(--mf-dim);
+  font-size: 1rem;
+  font-style: italic;
+}
+.mf-role-card-icon { font-size: 3.5rem; }
+.mf-role-card-label {
+  font-family: var(--mf-disp);
+  font-size: clamp(1.6rem, 6vw, 2.4rem);
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+/* Partners */
+.mf-partners {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.mf-partners-label {
+  font-size: 0.75rem;
+  color: var(--mf-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.mf-partner-chip {
+  background: rgba(232,24,42,0.2);
+  border: 1.5px solid rgba(232,24,42,0.4);
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #ff7a7a;
+}
+
+/* Green button */
+.mf-btn-green {
+  background: var(--mf-green) !important;
+  color: #000 !important;
+  box-shadow: 0 4px 0 #00a050 !important;
+}
+.mf-btn-green:hover  { transform: translateY(-3px); box-shadow: 0 7px 0 #00a050 !important; }
+.mf-btn-green:active { transform: translateY(3px);  box-shadow: 0 1px 0 #00a050 !important; }
+
+/* ── Local vote screen ───────────────────────────── */
+.mf-vote-sub {
+  color: var(--mf-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Vote ballot ─────────────────────────────────── */
+.mf-ballot-verdict {
+  font-family: var(--mf-disp);
+  font-size: 1.4rem;
+  color: var(--mf-red);
+  text-align: center;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* ── Online vote count dots ──────────────────────── */
+.mf-vote-dot {
+  position: absolute;
+  top: -6px; right: -6px;
+  background: var(--mf-red);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 900;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(232,24,42,0.5);
+  animation: mfBadgePop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes mfBadgePop {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+/* Target btn needs position relative for dot */
+.mf-target-btn { position: relative; }
+
+/* ── Day timer urgency ───────────────────────────── */
+.mf-day-timer { font-family: var(--mf-disp); font-size: 2rem; color: var(--mf-amber); }
+.mf-day-timer.urgent { color: var(--mf-red); animation: mfBlink 0.5s ease-in-out infinite; }
+
+/* ── Confetti ─────────────────────────────────────── */
+.mf-confetti { position: fixed; inset: 0; pointer-events: none; z-index: 99; overflow: hidden; }
+.mf-cp {
+  position: absolute;
+  width: 10px; height: 14px;
+  border-radius: 2px;
+  top: -20px;
+  animation: mfConf 1.5s ease-in forwards;
+  left: calc(var(--i, 0) * 4.5% + 2%);
+  animation-delay: calc(var(--r, 0) * 0.5s);
+  transform: rotate(calc(var(--i, 0) * 18deg));
+}
+.mf-cp-0 { background: #e8182a; }
+.mf-cp-1 { background: #f5a623; }
+.mf-cp-2 { background: #00e887; }
+.mf-cp-3 { background: #3d8bff; }
+.mf-cp-4 { background: #ff7a00; }
+.mf-cp-5 { background: #fff; }
+@keyframes mfConf {
+  to { top: 110%; transform: rotate(calc(var(--i, 0) * 240deg)) translateX(40px); opacity: 0; }
+}
+
+/* ── Lobby rules compact ─────────────────────────── */
+.mf-rules-compact {
+  background: var(--mf-surface);
+  border: 1.5px solid var(--mf-border);
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mf-rule-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.86rem;
+  color: var(--mf-muted);
+}
+.mf-rule-line span { font-size: 1.1rem; flex-shrink: 0; }
+
+/* ── English strings — overwrite Swahili-only classes ─ */
+.mf-vote-instruction { color: var(--mf-muted); font-size: 0.9rem; text-align: center; }
+.mf-day-instruction  { color: var(--mf-muted); font-size: 0.9rem; text-align: center; }
+.mf-ballot-title     { font-family: var(--mf-disp); font-size: clamp(2rem,8vw,3rem); letter-spacing: 0.08em; }
+
+/* Night timer bar (online night) */
+.mf-night-timer-bar {
+  width: 100%; max-width: 300px;
+  height: 4px;
+  background: var(--mf-surface);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+.mf-night-timer-fill {
+  height: 100%;
+  background: var(--mf-red);
+  border-radius: 2px;
+  transition: width 0.3s linear;
+}
+
+/* ── Mafia crew row ───────────────────────────────── */
+.mf-mafia-crew {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.mf-crew-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(232,24,42,0.15);
+  border: 1.5px solid rgba(232,24,42,0.3);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.mf-crew-chip span:first-child {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--mf-red);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mf-disp);
+  font-size: 0.9rem;
+}
+.mf-voted-tick { color: var(--mf-green); font-size: 1rem; }
+
+/* ── Spinner ───────────────────────────────────────── */
+.mf-spinner {
+  width: 44px; height: 44px;
+  border: 4px solid var(--mf-surface);
+  border-top-color: var(--mf-red);
+  border-radius: 50%;
+  animation: mfSpin 0.8s linear infinite;
+}
+@keyframes mfSpin { to { transform: rotate(360deg); } }
+
+/* ── Big icon ──────────────────────────────────────── */
+.mf-big-icon { font-size: 4rem; }
