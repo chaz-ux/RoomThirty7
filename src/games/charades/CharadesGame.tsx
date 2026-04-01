@@ -523,10 +523,12 @@ const CharadesGame: React.FC = () => {
       <div className="cr-lobby-glow cr-glow-red" />
       <div className="cr-lobby-glow cr-glow-blue" />
       <div className="cr-lobby-inner">
+        <div className="cr-phase-header">
+          <h2 className="cr-phase-title">🎭 CHARADES</h2>
+          <p className="cr-phase-hint">Room Thirty7 Edition · {mode === 'local' ? '📱 One Device' : '🌐 Online'}</p>
+        </div>
         <div className="cr-logo-block">
           <span className="cr-logo-icon">🎭</span>
-          <h1 className="cr-logo-title">CHARADES</h1>
-          <p className="cr-logo-sub">Room Thirty7 Edition · {mode === 'local' ? '📱 One Device' : '🌐 Online'}</p>
         </div>
         <div className="cr-player-grid">
           {players.map((p, i) => (
@@ -563,6 +565,10 @@ const CharadesGame: React.FC = () => {
     return (
       <div className={`cr-root cr-huddle cr-bg-${currentTeam}`}>
         <div className="cr-huddle-inner">
+          <div className="cr-phase-header">
+            <h2 className="cr-phase-title">👥 TEAM HUDDLE</h2>
+            <p className="cr-phase-hint">Round {roundNumber} of {totalRounds} · {actor?.name} is acting</p>
+          </div>
           <div className={`cr-team-flag cr-flag-${currentTeam}`}>TEAM {currentTeam.toUpperCase()}</div>
           <div className="cr-score-row">
             <div className={`cr-score-pill cr-score-red ${currentTeam === 'red' ? 'active' : ''}`}>
@@ -605,19 +611,20 @@ const CharadesGame: React.FC = () => {
     return (
       <div className={`cr-root cr-getready cr-bg-${mode === 'local' ? currentTeam : 'online'}`}>
         <div className="cr-getready-inner">
-          {mode === 'local' ? (
-            <>
-              <p className="cr-getready-title">Put phone on your forehead</p>
-              <div className="cr-phone-diagram">
-                <span className="cr-pd-phone">📱</span>
-                <span className="cr-pd-arrow">⬆️</span>
-                <span className="cr-pd-label">forehead</span>
-              </div>
-            </>
-          ) : (
-            <p className="cr-getready-title">
-              {isActor ? "You're Acting!" : `Watch ${actorName}!`}
-            </p>
+          <div className="cr-phase-header">
+            <h2 className="cr-phase-title">⏱️ GET READY</h2>
+            {mode === 'local' ? (
+              <p className="cr-phase-hint">Put phone on your forehead · {countdownNum}s</p>
+            ) : (
+              <p className="cr-phase-hint">{isActor ? "You're Acting!" : `Watch ${actorName}!`}</p>
+            )}
+          </div>
+          {mode === 'local' && (
+            <div className="cr-phone-diagram">
+              <span className="cr-pd-phone">📱</span>
+              <span className="cr-pd-arrow">⬆️</span>
+              <span className="cr-pd-label">forehead</span>
+            </div>
           )}
           <div className="cr-countdown-ring">
             <span className="cr-countdown-num">{countdownNum}</span>
@@ -643,9 +650,12 @@ const CharadesGame: React.FC = () => {
     if (mode === 'local') {
       return (
         <div className={`cr-root cr-playing cr-bg-${currentTeam}`}>
-          {/* Progress bar */}
           <div className="cr-progress-track">
             <div className={`cr-progress-fill ${urgent ? 'urgent' : ''}`} style={{ width: `${pct}%` }} />
+          </div>
+          <div className="cr-phase-header">
+            <h2 className="cr-phase-title">🎭 {currentTeam.toUpperCase()} TEAM</h2>
+            <p className="cr-phase-hint">Act without speaking · {timeLeft}s left</p>
           </div>
           {/* HUD */}
           <div className="cr-hud">
@@ -703,6 +713,10 @@ const CharadesGame: React.FC = () => {
       <div className="cr-root cr-playing cr-bg-online">
         <div className="cr-progress-track">
           <div className={`cr-progress-fill ${urgent ? 'urgent' : ''}`} style={{ width: `${pct}%` }} />
+        </div>
+        <div className="cr-phase-header">
+          <h2 className="cr-phase-title">🎭 CHARADES ONLINE</h2>
+          <p className="cr-phase-hint">{isActor ? "Act without speaking" : "Guess the word"} · {timeLeft}s left</p>
         </div>
         <div className="cr-hud">
           <div className={`cr-hud-time ${urgent ? 'panic' : ''}`}>{timeLeft}s</div>

@@ -1251,3 +1251,15 @@
 }
 @keyframes mfChatSlide { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+.mf-waiting-msg {
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem 1rem; margin-top: 1rem;
+  background: rgba(var(--mf-accent-rgb), 0.15); border-radius: 0.5rem;
+  border: 1px solid rgba(var(--mf-accent-rgb), 0.3);
+}
+.mf-waiting-msg p {
+  color: var(--mf-accent); font-size: 1.1rem; margin: 0;
+  font-weight: 600; animation: mfPulse 2s infinite;
+}
+
+@keyframes mfPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }

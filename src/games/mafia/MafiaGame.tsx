@@ -49,6 +49,7 @@ interface SS {
   mafiaVotes: Record<string, string>;
   // Day
   dayVotes: Record<string, string | 'skip'>;
+  currentVoter: string | null;   // Track whose turn it is to vote (for local/pass-the-device)
   reVoteCount: number;      // track how many re-votes this day
   endTime: number;
   roundNumber: number;
@@ -169,6 +170,7 @@ const MafiaGame: React.FC = () => {
   const nightActs  = s.nightActions    ?? [];
   const mafiaVotes = s.mafiaVotes      ?? {};
   const dayVotes   = s.dayVotes        ?? {};
+  const currentVoter = s.currentVoter  ?? null;
   const reVoteCount = s.reVoteCount    ?? 0;
   const endTime    = s.endTime         ?? 0;
   const roundNum   = s.roundNumber     ?? 1;
@@ -380,7 +382,7 @@ const MafiaGame: React.FC = () => {
     if (phase !== 'MORNING_REVEAL' || (!isHost && !isPassPlay)) return;
     const t = setTimeout(async () => {
       if (winner) { await setSharedState({ phase: 'GAME_OVER' }); }
-      else { await setSharedState({ phase: 'DAY_DISCUSS', endTime: Date.now() + DISCUSS_TIME * 1000, dayVotes: {}, reVoteCount: 0 }); }
+      else { await setSharedState({ phase: 'DAY_DISCUSS', endTime: Date.now() + DISCUSS_TIME * 1000, dayVotes: {}, reVoteCount: 0, currentVoter: null }); }
       sfx('morning');
     }, 5000);
     return () => clearTimeout(t);
@@ -392,8 +394,17 @@ const MafiaGame: React.FC = () => {
   //         taps to select who gets eliminated
   const castDayVote = async (targetId: string | 'skip') => {
     if (!currentPlayerId || isDead) return;
+    const newVotes: Record<string, string | 'skip'> = { ...dayVotes, [currentPlayerId]: targetId };
+    
+    // In pass-the-device mode, advance to next unvoted alive player
+    let nextVoter = currentPlayerId;
+    if (isPassPlay && currentVoter === currentPlayerId) {
+      const unvoted = alive.find((p: any) => !newVotes[p.id] && p.id !== currentPlayerId);
+      nextVoter = unvoted?.id || null;
+    }
+    
     sfx('vote');
-    await setSharedState({ dayVotes: { ...dayVotes, [currentPlayerId]: targetId } });
+    await setSharedState({ dayVotes: newVotes, currentVoter: nextVoter });
   };
 
   // LOCAL-ONLY: host directly selects who gets eliminated (currently unused - using unified voting)
@@ -433,10 +444,12 @@ const MafiaGame: React.FC = () => {
     
     if (tied) {
       // On tie: trigger re-vote (skip not allowed next time)
+      const firstVoter = alive.find((p: any) => !dv[p.id]);
       await setSharedState({
         phase: 'VOTE_REVOTE', dayVotes: {},
         endTime: Date.now() + VOTE_TIME * 1000,
         reVoteCount: reVoteCount + 1,
+        currentVoter: firstVoter?.id || null,
       });
       sfx('shatter'); vibe([100, 100, 100]);
     } else {
@@ -476,7 +489,7 @@ const MafiaGame: React.FC = () => {
         await setSharedState({
           phase: isPassPlay ? 'NIGHT_PASS' : 'NIGHT_ONLINE',
           passOrder: newPassOrder,
-          passIndex: 0, nightActions: [], mafiaVotes: {}, dayVotes: {},
+          passIndex: 0, nightActions: [], mafiaVotes: {}, dayVotes: {}, currentVoter: null,
           endTime: !isPassPlay ? Date.now() + NIGHT_TIME * 1000 : 0,
           roundNumber: roundNum + 1,
           eliminatedThisRound: null, woundedThisRound: null, chat: [],
@@ -991,7 +1004,10 @@ const MafiaGame: React.FC = () => {
           {/* Skip to vote button - only for host */}
           {isHost && (
             <button className="mf-main-btn mf-btn-green mf-skip-vote-btn"
-              onClick={() => setSharedState({ phase: 'VOTE', dayVotes: {}, endTime: Date.now() + VOTE_TIME * 1000 })}>
+              onClick={() => {
+                const firstVoter = alive.find((p: any) => !dayVotes[p.id]);
+                setSharedState({ phase: 'VOTE', dayVotes: {}, currentVoter: firstVoter?.id || alive[0]?.id, endTime: Date.now() + VOTE_TIME * 1000 });
+              }}>
               📋 Skip to Voting →
             </button>
           )}
@@ -1010,6 +1026,10 @@ const MafiaGame: React.FC = () => {
       if (v && v !== 'skip') voteCountsDay[v] = (voteCountsDay[v] ?? 0) + 1;
     });
     const totalVoted = Object.keys(dayVotes).filter((pid) => dayVotes[pid] !== 'skip').length;
+    
+    // In pass-the-device mode, show whose turn it is
+    const isMyTurn = isPassPlay && currentVoter === currentPlayerId;
+    const currentVoterName = players.find((p: any) => p.id === currentVoter)?.name || '?';
 
     return (
       <div className="mf-root mf-vote-bg">
@@ -1017,7 +1037,11 @@ const MafiaGame: React.FC = () => {
           {/* Phase direction header */}
           <div className="mf-phase-header">
             <h2 className="mf-phase-title">🗳️ VOTING PHASE</h2>
-            <p className="mf-phase-hint">Public digital ballot. Cast your vote now. No skipping allowed.</p>
+            {isPassPlay ? (
+              <p className="mf-phase-hint">{currentVoterName}, cast your vote now. No skipping allowed.</p>
+            ) : (
+              <p className="mf-phase-hint">Public digital ballot. Cast your vote now. No skipping allowed.</p>
+            )}
           </div>
 
           <div className="mf-vote-hud">
@@ -1035,7 +1059,7 @@ const MafiaGame: React.FC = () => {
               : `${totalVoted}/${alive.length} voted`}
           </p>
 
-          {!myVote && !isDead && (
+          {!myVote && !isDead && (isMyTurn || !isPassPlay) && (
             <div className="mf-target-grid">
               {votablePlayers.map((p: any) => {
                 const vc = voteCountsDay[p.id] ?? 0;
@@ -1050,6 +1074,12 @@ const MafiaGame: React.FC = () => {
                   </button>
                 );
               })}
+            </div>
+          )}
+          
+          {!myVote && !isDead && !isMyTurn && isPassPlay && (
+            <div className="mf-waiting-msg">
+              <p>Waiting for {currentVoterName} to vote...</p>
             </div>
           )}
 
@@ -1074,6 +1104,10 @@ const MafiaGame: React.FC = () => {
       if (v && v !== 'skip') voteCountsDay[v] = (voteCountsDay[v] ?? 0) + 1;
     });
     const totalVoted = Object.keys(dayVotes).length;
+    
+    // In pass-the-device mode, show whose turn it is
+    const isMyTurn = isPassPlay && currentVoter === currentPlayerId;
+    const currentVoterName = players.find((p: any) => p.id === currentVoter)?.name || '?';
 
     return (
       <div className="mf-root mf-vote-bg">
@@ -1081,7 +1115,11 @@ const MafiaGame: React.FC = () => {
           {/* Phase direction header */}
           <div className="mf-phase-header">
             <h2 className="mf-phase-title">🗳️ RE-VOTE PHASE</h2>
-            <p className="mf-phase-hint">It was a tie! Choose someone. No skipping allowed.</p>
+            {isPassPlay ? (
+              <p className="mf-phase-hint">{currentVoterName}, break the tie! Choose someone. No skipping allowed.</p>
+            ) : (
+              <p className="mf-phase-hint">It was a tie! Choose someone. No skipping allowed.</p>
+            )}
           </div>
 
           <div className="mf-vote-hud">
@@ -1099,7 +1137,7 @@ const MafiaGame: React.FC = () => {
               : `${totalVoted}/${alive.length} voted`}
           </p>
 
-          {!myVote && !isDead && (
+          {!myVote && !isDead && (isMyTurn || !isPassPlay) && (
             <div className="mf-target-grid">
               {votablePlayers.map((p: any) => {
                 const vc = voteCountsDay[p.id] ?? 0;
@@ -1114,6 +1152,12 @@ const MafiaGame: React.FC = () => {
                   </button>
                 );
               })}
+            </div>
+          )}
+          
+          {!myVote && !isDead && !isMyTurn && isPassPlay && (
+            <div className="mf-waiting-msg">
+              <p>Waiting for {currentVoterName} to vote...</p>
             </div>
           )}
 
