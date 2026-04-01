@@ -3,547 +3,889 @@ import { useMultiplayer } from '../../context/MultiplayerContext';
 import './Charades.css';
 
 /* =========================================
-   WORD BANK - 100+ words across categories
+   KENYAN-FLAVOURED WORD BANK
    ========================================= */
-const WORD_CATEGORIES = {
-    movies: [
-        'Titanic', 'Star Wars', 'The Matrix', 'Jurassic Park', 'Batman',
-        'Spider-Man', 'The Lion King', 'Harry Potter', 'Finding Nemo',
-        'The Avengers', 'Frozen', 'Toy Story', 'Black Panther', 'Jaws',
-        'The Godfather', 'Rocky', 'Ghostbusters', 'Home Alone', 'Shrek'
+const WORD_CATEGORIES: Record<string, { words: string[]; emoji: string }> = {
+  kenyan_life: {
+    emoji: '🇰🇪',
+    words: [
+      'Matatu', 'Boda Boda', 'Mama Mboga', 'Nyama Choma', 'Ugali', 'Sukuma Wiki',
+      'Chapati', 'Mandazi', 'Mutura', 'Smokies na kachumbari', 'Githeri', 'Pilau',
+      'Buying Airtime', 'M-Pesa', 'Hawker in CBD', 'Traffic Jam in Nairobi',
+      'Watchman Opening Gate', 'Conductor Hanging on Matatu', 'Queue at KRA',
+      'Selling Mitumba', 'Fetching Water', 'Charging Phone at Neighbour\'s',
+      'Landlord Knocking on 1st', 'Harambee', 'Burning Sukuma',
     ],
-    actions: [
-        'Jumping Jacks', 'Doing a Push-up', 'Swinging on a Swing', 'Climbing a Ladder',
-        'Typing on Keyboard', 'Playing Guitar', 'Playing Piano', 'Taking a Selfie',
-        'Riding a Bicycle', 'Swimming', 'Dancing', 'Sleeping', 'Eating Pizza',
-        'Drinking Coffee', 'Reading a Book', 'Fishing', 'Skateboarding',
-        'Jump Roping', 'Bowling', 'Dribbling a Basketball'
+  },
+  nairobi_vibes: {
+    emoji: '🏙️',
+    words: [
+      'City Council Askari', 'Kanjo Running Away', 'Jua Kali Mechanic',
+      'Supermarket Trolley Ride', 'ATM Queue on Friday', 'KPLC Token',
+      'Matatu Touts Fighting', 'Sleeping in a Meeting', 'Photocopy Guy',
+      'Speed Bump on Thika Rd', 'Nairobians Complaining about Rain',
+      'KDF Soldier Standing Guard', 'Nairobi Night Runner',
     ],
-    animals: [
-        'Elephant', 'Giraffe', 'Kangaroo', 'Penguin', 'Monkey', 'Snake',
-        'Butterfly', 'Dolphin', 'Octopus', 'Crocodile', 'Flamingo', 'Peacock',
-        'Hedgehog', 'Squirrel', 'Zebra', 'Polar Bear', 'Koala', 'Sloth'
+  },
+  kenyan_icons: {
+    emoji: '⭐',
+    words: [
+      'Lupita Nyong\'o', 'Sauti Sol', 'Khaligraph Jones', 'Bien',
+      'Churchill Show', 'Eric Omondi', 'Njugush', 'Kamene Goro',
+      'Azziad Dancing', 'Otile Brown Singing', 'David Rudisha Running',
+      'Eliud Kipchoge Marathon', 'Wanjiru Kamau', 'Gengetone Artist',
     ],
-    objects: [
-        'Umbrella', 'Ladder', 'Microwave', 'Toaster', 'Television', 'Remote Control',
-        'Sunglasses', 'Headphones', 'Camera', 'Bicycle', 'Guitar', 'Piano',
-        'Lamp', 'Chair', 'Table', 'Laptop', 'Phone', 'Watch', 'Backpack'
+  },
+  movies_tv: {
+    emoji: '🎬',
+    words: [
+      'Squid Game', 'Black Panther', 'Avengers', 'Money Heist', 'Naruto',
+      'One Piece', 'Fast & Furious', 'Spider-Man', 'Titanic', 'Inception',
+      'The Lion King', 'Breaking Bad', 'Game of Thrones',
+      'Stranger Things', 'Prison Break', 'Power', 'Suits',
     ],
-    professions: [
-        'Firefighter', 'Police Officer', 'Doctor', 'Chef', 'Astronaut',
-        'Teacher', 'Pilot', 'Construction Worker', 'Dentist', 'Scientist',
-        'Artist', 'Mechanic', 'Waiter', 'Bus Driver', 'Farmer'
+  },
+  actions: {
+    emoji: '🏃',
+    words: [
+      'Doing the Gwara Gwara', 'Twerking at a Party', 'Playing FIFA',
+      'Texting While Crossing Road', 'Taking a Selfie', 'Sleeping in Church',
+      'Doing Push-ups', 'Swimming', 'Riding a Bicycle', 'Playing Guitar',
+      'Eating Ugali with Hands', 'Crossing Busy Nairobi Road',
+      'Jump Rope', 'Boxing', 'Dancing Genge at a Wedding',
+      'Proposing in a Restaurant', 'Taking a Cab selfie',
     ],
-    sports: [
-        'Soccer', 'Basketball', 'Tennis', 'Golf', 'Boxing', 'Skiing',
-        'Surfing', 'Rock Climbing', 'Weight Lifting', 'Yoga', 'Martial Arts',
-        'Volleyball', 'Baseball', 'Football', 'Ice Hockey'
+  },
+  animals: {
+    emoji: '🦁',
+    words: [
+      'Lion', 'Elephant', 'Giraffe', 'Cheetah', 'Rhino', 'Hippo',
+      'Crocodile', 'Flamingo at Lake Nakuru', 'Wildebeest Migration',
+      'Hyena', 'Gorilla', 'Penguin', 'Octopus', 'Monkey Stealing Food',
     ],
-    food: [
-        'Pizza', 'Burger', 'Spaghetti', 'Ice Cream', 'Cupcake', 'Pancakes',
-        'Sushi', 'Taco', 'Hot Dog', 'Popcorn', 'Watermelon', 'Banana',
-        'Spicy Pepper', 'Birthday Cake', 'Cookie'
+  },
+  sports: {
+    emoji: '⚽',
+    words: [
+      'Gor Mahia Fan Celebrating', 'AFC Leopards Derby', 'Safari Rally Driver',
+      'Rugby Sevens Try', 'Harambee Stars Penalty Miss', 'Marathon Runner Finishing',
+      'Volleyball Block', 'Basketball Dunk', 'Boxing KO', 'Table Tennis Smash',
     ],
-    emotions: [
-        'Happy', 'Angry', 'Scared', 'Surprised', 'Excited', 'Sad',
-        'Confused', 'Proud', 'Jealous', 'Love', 'Nervous', 'Bored'
-    ]
+  },
+  emotions: {
+    emoji: '😂',
+    words: [
+      'Embarrassed in Public', 'Jealous of a Friend', 'Proud of your Child',
+      'Confused in an Exam', 'Scared of a Dog', 'Excited about Salary',
+      'In Love', 'Heartbroken', 'Bored in a Meeting',
+      'Nervous Before Interview', 'Happy when KPLC Returns Power',
+    ],
+  },
 };
 
-// Flatten all words into a single array
-const ALL_WORDS = Object.values(WORD_CATEGORIES).flat();
+const ALL_WORDS = Object.values(WORD_CATEGORIES).flatMap(c => c.words);
 
-// Fisher-Yates shuffle
-const shuffleArray = <T,>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+const shuffleArray = <T,>(arr: T[]): T[] => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 };
 
-const getRandomWord = (usedWords: Set<string>): string => {
-    const available = ALL_WORDS.filter(w => !usedWords.has(w));
-    if (available.length === 0) {
-        // Reset if we've used all words
-        return ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)];
-    }
-    return available[Math.floor(Math.random() * available.length)];
+const getRandomWord = (used: Set<string>): string => {
+  const available = ALL_WORDS.filter(w => !used.has(w));
+  const pool = available.length > 0 ? available : ALL_WORDS;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
+const getCategoryEmoji = (word: string): string => {
+  for (const [, cat] of Object.entries(WORD_CATEGORIES)) {
+    if (cat.words.includes(word)) return cat.emoji;
+  }
+  return '🎭';
 };
 
 /* =========================================
-   PHASES
+   TYPES
    ========================================= */
-type Phase = 'LOBBY' | 'CHOOSING' | 'GET_READY' | 'ACTOR_REVEAL' | 'PLAYING' | 'ROUND_END' | 'SCORE';
+type Phase = 'LOBBY' | 'HUDDLE' | 'GET_READY' | 'PLAYING' | 'ROUND_END' | 'FINAL_SCORE';
+type Team = 'red' | 'blue';
 
-interface WordHistoryItem {
-    word: string;
-    result: 'correct' | 'skip';
-    timestamp: number;
+interface Player {
+  id: string;
+  name: string;
+  isHost?: boolean;
+  team?: Team;
+}
+
+interface WordRecord {
+  word: string;
+  result: 'correct' | 'skip';
+  actorId: string;
+  guesserName?: string;
 }
 
 interface OnlineGuess {
-    playerId: string;
-    playerName: string;
-    guess: string;
-    timestamp: number;
+  playerId: string;
+  playerName: string;
+  text: string;
+  correct: boolean;
+  ts: number;
 }
+
+interface StuckVote { playerId: string; }
+
+interface SharedState {
+  phase: Phase;
+  endTime: number;
+  teamScores: { red: number; blue: number };
+  currentTeam: Team;
+  actorIndex: number;
+  playerScores: Record<string, number>;
+  actorPoints: Record<string, number>;
+  sharpPoints: Record<string, number>;
+  onlineActorId: string | null;
+  onlineGuesses: OnlineGuess[];
+  stuckVotes: StuckVote[];
+  currentWord: string;
+  wordHistory: WordRecord[];
+  roundNumber: number;
+  totalRounds: number;
+  skipLocked: boolean;
+  skipLockUntil: number;
+  activePlayerId: string | null;
+}
+
+const ROUND_DURATION = 60;
+const SKIP_PENALTY_MS = 2000;
+const ONLINE_GUESSER_PTS = 100;
+const ONLINE_ACTOR_PTS = 50;
+const ONLINE_PASS_PEN = 50;
+const ONLINE_MUTINY_PEN = 50;
 
 /* =========================================
    COMPONENT
    ========================================= */
 const CharadesGame: React.FC = () => {
-    const { players, sharedState, setSharedState, isHost, currentPlayerId, mode } = useMultiplayer();
+  const { players, sharedState, setSharedState, isHost, currentPlayerId, mode } =
+    useMultiplayer() as {
+      players: Player[];
+      sharedState: Partial<SharedState> | null;
+      setSharedState: (s: Partial<SharedState>) => Promise<void>;
+      isHost: boolean;
+      currentPlayerId: string | null;
+      mode: 'local' | 'online';
+    };
 
-    // Local state for smooth UI updates
-    const [timeLeft, setTimeLeft] = useState(60);
-    const [wordHistory, setWordHistory] = useState<WordHistoryItem[]>([]);
-    const [usedWords, setUsedWords] = useState<Set<string>>(new Set());
-    const [onlineGuesses, setOnlineGuesses] = useState<OnlineGuess[]>([]);
-    const [guessInput, setGuessInput] = useState('');
-    const [showCorrectAnimation, setShowCorrectAnimation] = useState(false);
-    const [showSkipAnimation, setShowSkipAnimation] = useState(false);
-    const [scoreAnimation, setScoreAnimation] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(ROUND_DURATION);
+  const [skipCountdown, setSkipCountdown] = useState(0);
+  const [wordAnim, setWordAnim] = useState<'idle' | 'correct' | 'skip' | 'locked'>('idle');
+  const [guessInput, setGuessInput] = useState('');
+  const [tiltEnabled, setTiltEnabled] = useState(false);
+  const [tiltAsked, setTiltAsked] = useState(false);
+  const tiltCooldown = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioCtx = useRef<AudioContext | null>(null);
 
-    // Refs
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
-    const wordRef = useRef<string>('');
+  const s = (sharedState ?? {}) as Partial<SharedState>;
+  const phase = s.phase ?? 'LOBBY';
+  const endTime = s.endTime ?? 0;
+  const teamScores = s.teamScores ?? { red: 0, blue: 0 };
+  const currentTeam = s.currentTeam ?? 'red';
+  const actorIndex = s.actorIndex ?? 0;
+  const playerScores = s.playerScores ?? {};
+  const actorPoints = s.actorPoints ?? {};
+  const sharpPoints = s.sharpPoints ?? {};
+  const onlineActorId = s.onlineActorId ?? null;
+  const onlineGuesses = s.onlineGuesses ?? [];
+  const stuckVotes = s.stuckVotes ?? [];
+  const currentWord = s.currentWord ?? '';
+  const wordHistory = s.wordHistory ?? [];
+  const roundNumber = s.roundNumber ?? 1;
+  const totalRounds = s.totalRounds ?? 4;
+  const skipLocked = s.skipLocked ?? false;
+  const skipLockUntil = s.skipLockUntil ?? 0;
+  const activePlayerId = s.activePlayerId ?? null;
 
-    // Redirect if no players
-    if (players.length === 0) {
-        return (
-            <div className="charades-container">
-                <div className="charades-lobby">
-                    <h2>Please enter via Lobby</h2>
-                    <a href="/lobby?game=charades" className="exit-link">Go to Lobby</a>
-                </div>
+  const isActor = mode === 'local' ? true : currentPlayerId === onlineActorId;
+  const currentActorId = mode === 'local' ? activePlayerId : onlineActorId;
+  const actorName = players.find(p => p.id === currentActorId)?.name ?? 'Someone';
+  const myScore = playerScores[currentPlayerId ?? ''] ?? 0;
+  const guesserCount = mode === 'online' ? players.filter(p => p.id !== onlineActorId).length : 0;
+  const mutinyThreshold = Math.max(2, Math.ceil(guesserCount / 2));
+  const iHaveVotedStuck = stuckVotes.some(v => v.playerId === currentPlayerId);
+
+  /* --------- Audio --------- */
+  const playTone = useCallback((type: 'correct' | 'skip' | 'mutiny' | 'tick') => {
+    try {
+      if (!audioCtx.current) audioCtx.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const ctx = audioCtx.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      if (type === 'correct') {
+        osc.frequency.setValueAtTime(523, ctx.currentTime);
+        osc.frequency.setValueAtTime(659, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.5);
+      } else if (type === 'skip') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, ctx.currentTime);
+        osc.frequency.setValueAtTime(100, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.45);
+      } else if (type === 'mutiny') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(200, ctx.currentTime);
+        osc.frequency.setValueAtTime(160, ctx.currentTime + 0.2);
+        osc.frequency.setValueAtTime(130, ctx.currentTime + 0.4);
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.65);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.65);
+      } else if (type === 'tick') {
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.06);
+      }
+    } catch (_) {}
+  }, []);
+
+  const vibrate = (p: number | number[]) => { try { navigator.vibrate(p); } catch (_) {} };
+
+  /* --------- Tilt --------- */
+  const requestTilt = async () => {
+    setTiltAsked(true);
+    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      const res = await (DeviceOrientationEvent as any).requestPermission().catch(() => 'denied');
+      if (res === 'granted') setTiltEnabled(true);
+    } else {
+      setTiltEnabled(true);
+    }
+  };
+
+  useEffect(() => {
+    if (!tiltEnabled || phase !== 'PLAYING' || mode !== 'local') return;
+    const handler = (e: DeviceOrientationEvent) => {
+      if (tiltCooldown.current) return;
+      const beta = e.beta ?? 0;
+      if (beta > 55) {
+        tiltCooldown.current = true;
+        handleCorrect();
+        setTimeout(() => { tiltCooldown.current = false; }, 900);
+      } else if (beta < -35) {
+        tiltCooldown.current = true;
+        handleSkip();
+        setTimeout(() => { tiltCooldown.current = false; }, 2600);
+      }
+    };
+    window.addEventListener('deviceorientation', handler);
+    return () => window.removeEventListener('deviceorientation', handler);
+  }, [tiltEnabled, phase, mode]);
+
+  /* --------- Timer --------- */
+  useEffect(() => {
+    if (phase !== 'PLAYING' && phase !== 'GET_READY') return;
+    timerRef.current = setInterval(() => {
+      const rem = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+      setTimeLeft(rem);
+      if (rem <= 5 && rem > 0) playTone('tick');
+      if (rem === 0) {
+        clearInterval(timerRef.current!);
+        if (isHost || mode === 'local') {
+          if (phase === 'GET_READY') {
+            setSharedState({ phase: 'PLAYING', endTime: Date.now() + ROUND_DURATION * 1000 });
+          } else {
+            setSharedState({ phase: 'ROUND_END' });
+          }
+        }
+      }
+    }, 100);
+    return () => clearInterval(timerRef.current!);
+  }, [phase, endTime]);
+
+  useEffect(() => {
+    if (!skipLocked) return;
+    const iv = setInterval(() => {
+      const rem = Math.max(0, Math.ceil((skipLockUntil - Date.now()) / 1000));
+      setSkipCountdown(rem);
+      if (rem === 0) {
+        clearInterval(iv);
+        if (isHost || mode === 'local') setSharedState({ skipLocked: false, skipLockUntil: 0 });
+      }
+    }, 100);
+    return () => clearInterval(iv);
+  }, [skipLocked, skipLockUntil]);
+
+  /* =========================================
+     ACTIONS
+     ========================================= */
+  const createTeams = async () => {
+    const shuffled = shuffleArray([...players]);
+    const half = Math.ceil(shuffled.length / 2);
+    // Tag players with teams
+    const withTeams = shuffled.map((p, i) => ({ ...p, team: (i < half ? 'red' : 'blue') as Team }));
+    const redActor = withTeams.filter(p => p.team === 'red')[0];
+    const rounds = Math.min(players.length * 2, 8);
+    await setSharedState({
+      phase: 'HUDDLE',
+      teamScores: { red: 0, blue: 0 },
+      currentTeam: 'red',
+      actorIndex: 0,
+      activePlayerId: redActor.id,
+      roundNumber: 1,
+      totalRounds: rounds,
+      wordHistory: [],
+    });
+  };
+
+  const startOnlineGame = async () => {
+    const firstActor = players[Math.floor(Math.random() * players.length)];
+    await setSharedState({
+      phase: 'GET_READY',
+      onlineActorId: firstActor.id,
+      currentWord: getRandomWord(new Set()),
+      endTime: Date.now() + 5000,
+      playerScores: Object.fromEntries(players.map(p => [p.id, 0])),
+      actorPoints: {},
+      sharpPoints: {},
+      onlineGuesses: [],
+      stuckVotes: [],
+      wordHistory: [],
+      roundNumber: 1,
+      totalRounds: players.length,
+    });
+  };
+
+  const handleCorrect = useCallback(async () => {
+    if (phase !== 'PLAYING') return;
+    const word = currentWord;
+    playTone('correct');
+    vibrate([80, 40, 80]);
+    setWordAnim('correct');
+    setTimeout(() => setWordAnim('idle'), 500);
+    const rec: WordRecord = { word, result: 'correct', actorId: currentActorId ?? '' };
+    const nextWord = getRandomWord(new Set([...wordHistory.map(w => w.word), word]));
+    if (mode === 'local') {
+      await setSharedState({
+        teamScores: { ...teamScores, [currentTeam]: teamScores[currentTeam] + 1 },
+        currentWord: nextWord,
+        wordHistory: [...wordHistory, rec],
+      });
+    }
+  }, [phase, currentWord, wordHistory, teamScores, currentTeam, mode, currentActorId]);
+
+  const handleSkip = useCallback(async () => {
+    if (phase !== 'PLAYING' || skipLocked) return;
+    const word = currentWord;
+    playTone('skip');
+    vibrate([250]);
+    setWordAnim('locked');
+    setTimeout(() => setWordAnim('idle'), 2100);
+    const rec: WordRecord = { word, result: 'skip', actorId: currentActorId ?? '' };
+    const nextWord = getRandomWord(new Set([...wordHistory.map(w => w.word), word]));
+    await setSharedState({
+      currentWord: nextWord,
+      wordHistory: [...wordHistory, rec],
+      skipLocked: true,
+      skipLockUntil: Date.now() + SKIP_PENALTY_MS,
+    });
+  }, [phase, currentWord, wordHistory, skipLocked, currentActorId]);
+
+  const handleOnlinePass = useCallback(async () => {
+    if (phase !== 'PLAYING' || !isActor) return;
+    const word = currentWord;
+    playTone('skip');
+    vibrate([200]);
+    setWordAnim('skip');
+    setTimeout(() => setWordAnim('idle'), 400);
+    const newScores = { ...playerScores };
+    if (onlineActorId) newScores[onlineActorId] = Math.max(0, (newScores[onlineActorId] ?? 0) - ONLINE_PASS_PEN);
+    const nextWord = getRandomWord(new Set([...wordHistory.map(w => w.word), word]));
+    await setSharedState({
+      currentWord: nextWord,
+      wordHistory: [...wordHistory, { word, result: 'skip', actorId: onlineActorId ?? '' }],
+      playerScores: newScores,
+      onlineGuesses: [],
+      stuckVotes: [],
+    });
+  }, [phase, isActor, currentWord, wordHistory, playerScores, onlineActorId]);
+
+  const handleGuessSubmit = useCallback(async () => {
+    if (!guessInput.trim() || !currentPlayerId || phase !== 'PLAYING') return;
+    const text = guessInput.trim();
+    const correct = text.toLowerCase() === currentWord.toLowerCase();
+    const myName = players.find(p => p.id === currentPlayerId)?.name ?? 'Player';
+    setGuessInput('');
+    if (correct) {
+      const newScores = { ...playerScores };
+      newScores[currentPlayerId] = (newScores[currentPlayerId] ?? 0) + ONLINE_GUESSER_PTS;
+      if (onlineActorId) newScores[onlineActorId] = (newScores[onlineActorId] ?? 0) + ONLINE_ACTOR_PTS;
+      const newActorPts = { ...actorPoints };
+      if (onlineActorId) newActorPts[onlineActorId] = (newActorPts[onlineActorId] ?? 0) + ONLINE_ACTOR_PTS;
+      const newSharpPts = { ...sharpPoints };
+      newSharpPts[currentPlayerId] = (newSharpPts[currentPlayerId] ?? 0) + 1;
+      const nextWord = getRandomWord(new Set([...wordHistory.map(w => w.word), currentWord]));
+      playTone('correct');
+      vibrate([80, 40, 80]);
+      setWordAnim('correct');
+      setTimeout(() => setWordAnim('idle'), 500);
+      await setSharedState({
+        currentWord: nextWord,
+        wordHistory: [...wordHistory, { word: currentWord, result: 'correct', actorId: onlineActorId ?? '', guesserName: myName }],
+        playerScores: newScores,
+        actorPoints: newActorPts,
+        sharpPoints: newSharpPts,
+        onlineGuesses: [],
+        stuckVotes: [],
+      });
+    } else {
+      await setSharedState({ onlineGuesses: [...onlineGuesses, { playerId: currentPlayerId, playerName: myName, text, correct: false, ts: Date.now() }] });
+    }
+  }, [guessInput, currentPlayerId, phase, currentWord, players, onlineGuesses, playerScores, actorPoints, sharpPoints, wordHistory, onlineActorId]);
+
+  const handleStuck = async () => {
+    if (!currentPlayerId || iHaveVotedStuck || isActor) return;
+    const newVotes = [...stuckVotes, { playerId: currentPlayerId }];
+    if (newVotes.length >= mutinyThreshold) {
+      playTone('mutiny');
+      vibrate([300, 100, 300]);
+      const newScores = { ...playerScores };
+      if (onlineActorId) newScores[onlineActorId] = Math.max(0, (newScores[onlineActorId] ?? 0) - ONLINE_MUTINY_PEN);
+      const nextWord = getRandomWord(new Set([...wordHistory.map(w => w.word), currentWord]));
+      await setSharedState({
+        currentWord: nextWord,
+        wordHistory: [...wordHistory, { word: currentWord, result: 'skip', actorId: onlineActorId ?? '' }],
+        playerScores: newScores,
+        onlineGuesses: [],
+        stuckVotes: [],
+      });
+    } else {
+      await setSharedState({ stuckVotes: newVotes });
+    }
+  };
+
+  const nextRound = async () => {
+    const next = actorIndex + 1;
+    if (next >= totalRounds) { await setSharedState({ phase: 'FINAL_SCORE' }); return; }
+    const nextTeam: Team = next % 2 === 0 ? 'red' : 'blue';
+    const teamPlayers = players.filter(p => p.team === nextTeam);
+    const nextActor = teamPlayers[Math.floor(Math.random() * Math.max(1, teamPlayers.length))];
+    await setSharedState({
+      phase: 'HUDDLE',
+      actorIndex: next,
+      currentTeam: nextTeam,
+      activePlayerId: nextActor?.id ?? players[0].id,
+      currentWord: getRandomWord(new Set(wordHistory.map(w => w.word))),
+      roundNumber: roundNumber + 1,
+    });
+  };
+
+  const nextOnlineRound = async () => {
+    const idx = players.findIndex(p => p.id === onlineActorId);
+    const nextIdx = (idx + 1) % players.length;
+    const newRound = roundNumber + 1;
+    if (newRound > totalRounds) { await setSharedState({ phase: 'FINAL_SCORE' }); return; }
+    await setSharedState({
+      phase: 'GET_READY',
+      onlineActorId: players[nextIdx].id,
+      currentWord: getRandomWord(new Set(wordHistory.map(w => w.word))),
+      endTime: Date.now() + 5000,
+      roundNumber: newRound,
+      onlineGuesses: [],
+      stuckVotes: [],
+    });
+  };
+
+  /* =========================================
+     RENDERS
+     ========================================= */
+  if (players.length === 0) {
+    return (
+      <div className="cr-root">
+        <div className="cr-center-card">
+          <span className="cr-icon-xl">🎭</span>
+          <p className="cr-no-players-msg">Enter through the Lobby first</p>
+          <a href="/lobby?game=charades" className="cr-ghost-btn">Go to Lobby</a>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---- LOBBY ---- */
+  if (phase === 'LOBBY') return (
+    <div className="cr-root cr-lobby">
+      <div className="cr-lobby-glow cr-glow-red" />
+      <div className="cr-lobby-glow cr-glow-blue" />
+      <div className="cr-lobby-inner">
+        <div className="cr-logo-block">
+          <span className="cr-logo-icon">🎭</span>
+          <h1 className="cr-logo-title">CHARADES</h1>
+          <p className="cr-logo-sub">Room Thirty7 Edition · {mode === 'local' ? '📱 One Device' : '🌐 Online'}</p>
+        </div>
+        <div className="cr-player-grid">
+          {players.map((p, i) => (
+            <div key={p.id} className={`cr-player-chip ${p.isHost ? 'host' : ''}`} style={{ animationDelay: `${i * 0.06}s` }}>
+              <span className="cr-chip-av">{p.name.charAt(0).toUpperCase()}</span>
+              <span className="cr-chip-name">{p.name}</span>
+              {p.isHost && <span className="cr-chip-crown">👑</span>}
             </div>
-        );
+          ))}
+        </div>
+        {(isHost || mode === 'local') ? (
+          mode === 'local' ? (
+            <button className="cr-main-btn cr-btn-red" onClick={createTeams}>
+              Create Teams &amp; Start
+              <span className="cr-btn-hint">{players.length} players → 2 teams</span>
+            </button>
+          ) : (
+            <button className="cr-main-btn cr-btn-blue" onClick={startOnlineGame}>
+              Start Online Game
+              <span className="cr-btn-hint">{players.length} players · Free for all</span>
+            </button>
+          )
+        ) : (
+          <p className="cr-wait-pulse">Waiting for host to start…</p>
+        )}
+        <a href="/" className="cr-exit">← Back to Hub</a>
+      </div>
+    </div>
+  );
+
+  /* ---- HUDDLE ---- */
+  if (phase === 'HUDDLE') {
+    const actor = players.find(p => p.id === activePlayerId);
+    return (
+      <div className={`cr-root cr-huddle cr-bg-${currentTeam}`}>
+        <div className="cr-huddle-inner">
+          <div className={`cr-team-flag cr-flag-${currentTeam}`}>TEAM {currentTeam.toUpperCase()}</div>
+          <div className="cr-score-row">
+            <div className={`cr-score-pill cr-score-red ${currentTeam === 'red' ? 'active' : ''}`}>
+              🔴 <strong>{teamScores.red}</strong>
+            </div>
+            <span className="cr-score-vs">vs</span>
+            <div className={`cr-score-pill cr-score-blue ${currentTeam === 'blue' ? 'active' : ''}`}>
+              <strong>{teamScores.blue}</strong> 🔵
+            </div>
+          </div>
+          <div className="cr-spotlight">
+            <div className="cr-spotlight-avatar">{actor?.name?.charAt(0).toUpperCase()}</div>
+            <h2 className="cr-spotlight-name">{actor?.name}</h2>
+            <p className="cr-spotlight-sub">is acting this round!</p>
+          </div>
+          <p className="cr-round-info">Round {roundNumber} of {totalRounds}</p>
+          {(isHost || mode === 'local') && (
+            <button
+              className={`cr-main-btn cr-btn-${currentTeam}`}
+              onClick={() => setSharedState({
+                phase: 'GET_READY',
+                currentWord: getRandomWord(new Set(wordHistory.map(w => w.word))),
+                endTime: Date.now() + 5000,
+                skipLocked: false,
+                skipLockUntil: 0,
+              })}
+            >
+              Actor, Take the Phone
+              <span className="cr-btn-hint">3-second countdown starts</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---- GET READY ---- */
+  if (phase === 'GET_READY') {
+    const countdownNum = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+    return (
+      <div className={`cr-root cr-getready cr-bg-${mode === 'local' ? currentTeam : 'online'}`}>
+        <div className="cr-getready-inner">
+          {mode === 'local' ? (
+            <>
+              <p className="cr-getready-title">Put phone on your forehead</p>
+              <div className="cr-phone-diagram">
+                <span className="cr-pd-phone">📱</span>
+                <span className="cr-pd-arrow">⬆️</span>
+                <span className="cr-pd-label">forehead</span>
+              </div>
+            </>
+          ) : (
+            <p className="cr-getready-title">
+              {isActor ? "You're Acting!" : `Watch ${actorName}!`}
+            </p>
+          )}
+          <div className="cr-countdown-ring">
+            <span className="cr-countdown-num">{countdownNum}</span>
+          </div>
+          {mode === 'local' && (
+            <button className="cr-main-btn cr-btn-white" onClick={() =>
+              setSharedState({ phase: 'PLAYING', endTime: Date.now() + ROUND_DURATION * 1000, skipLocked: false })
+            }>
+              I'm Ready — GO!
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---- PLAYING ---- */
+  if (phase === 'PLAYING') {
+    const pct = (timeLeft / ROUND_DURATION) * 100;
+    const urgent = timeLeft <= 10;
+    const catEmoji = getCategoryEmoji(currentWord);
+
+    if (mode === 'local') {
+      return (
+        <div className={`cr-root cr-playing cr-bg-${currentTeam}`}>
+          {/* Progress bar */}
+          <div className="cr-progress-track">
+            <div className={`cr-progress-fill ${urgent ? 'urgent' : ''}`} style={{ width: `${pct}%` }} />
+          </div>
+          {/* HUD */}
+          <div className="cr-hud">
+            <div className={`cr-hud-time ${urgent ? 'panic' : ''}`}>{timeLeft}s</div>
+            <div className="cr-hud-scores">
+              <span className={`cr-hud-team red ${currentTeam === 'red' ? 'active' : ''}`}>{teamScores.red}</span>
+              <span className="cr-hud-dot">·</span>
+              <span className={`cr-hud-team blue ${currentTeam === 'blue' ? 'active' : ''}`}>{teamScores.blue}</span>
+            </div>
+          </div>
+          {/* Word */}
+          <div className="cr-word-stage">
+            <div className="cr-word-cat">{catEmoji}</div>
+            <div className={`cr-word-card cr-wc-${wordAnim}`}>
+              <p className="cr-word-text">{currentWord}</p>
+            </div>
+            {skipLocked && (
+              <div className="cr-skip-lock-badge">
+                <span>🔒 LOCKED {skipCountdown}s</span>
+              </div>
+            )}
+            {wordHistory.length > 0 && (
+              <div className="cr-trail">
+                {wordHistory.slice(-6).map((w, i) => (
+                  <span key={i} className={`cr-trail-chip cr-chip-${w.result}`}>
+                    {w.result === 'correct' ? '✓' : '✗'} {w.word}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Tilt permission (iOS) */}
+          {!tiltAsked && (
+            <button className="cr-tilt-btn" onClick={requestTilt}>Enable Tilt Controls</button>
+          )}
+          {tiltEnabled && <p className="cr-tilt-hint">Tilt ↓ = Got It &nbsp;·&nbsp; Tilt ↑ = Pass</p>}
+          {/* Action split */}
+          <div className="cr-split">
+            <button className={`cr-split-half cr-split-skip ${skipLocked ? 'locked' : ''}`} onClick={handleSkip} disabled={skipLocked}>
+              <span className="cr-split-icon">⏭</span>
+              <span className="cr-split-label">PASS</span>
+              {skipLocked && <span className="cr-split-sub">🔒 {skipCountdown}s</span>}
+            </button>
+            <button className="cr-split-half cr-split-correct" onClick={handleCorrect}>
+              <span className="cr-split-icon">✅</span>
+              <span className="cr-split-label">GOT IT</span>
+            </button>
+          </div>
+        </div>
+      );
     }
 
-    // Extract shared state with defaults
-    const {
-        phase = 'LOBBY',
-        endTime = 0,
-        currentScore = 0,
-        currentWord = '',
-        activePlayerId = null,
-        currentRound = 1,
-        totalRounds = 3
-    } = sharedState || {};
-
-    const isActivePlayer = mode === 'local' || currentPlayerId === activePlayerId;
-    const activePlayerName = players.find(p => p.id === activePlayerId)?.name || 'Someone';
-    const isActorView = isActivePlayer && (phase === 'ACTOR_REVEAL' || phase === 'PLAYING');
-
-    /* =========================================
-       TIMER SYNC - Runs on both client and host
-       ========================================= */
-    useEffect(() => {
-        if (phase === 'GET_READY' || phase === 'ACTOR_REVEAL' || phase === 'PLAYING') {
-            timerRef.current = setInterval(() => {
-                const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
-                setTimeLeft(remaining);
-
-                // Phase transitions - only act if we're the authority
-                if (remaining === 0) {
-                    if (phase === 'GET_READY') {
-                        // Transition to ACTOR_REVEAL (actor taps to see word)
-                        if (isHost || currentPlayerId === activePlayerId) {
-                            setSharedState({
-                                phase: 'ACTOR_REVEAL',
-                                endTime: Date.now() + 10000, // 10s to tap and show phone
-                                currentWord: getRandomWord(usedWords)
-                            });
-                        }
-                    } else if (phase === 'ACTOR_REVEAL') {
-                        // Time's up for reveal - start playing
-                        if (isHost || currentPlayerId === activePlayerId) {
-                            setSharedState({
-                                phase: 'PLAYING',
-                                endTime: Date.now() + 60000
-                            });
-                        }
-                    } else if (phase === 'PLAYING') {
-                        // Round ends
-                        if (isHost || currentPlayerId === activePlayerId) {
-                            setSharedState({ phase: 'SCORE' });
-                        }
-                    }
-                }
-            }, 100);
-        }
-
-        return () => {
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-            }
-        };
-    }, [phase, endTime, isHost, currentPlayerId, activePlayerId, setSharedState, usedWords]);
-
-    /* =========================================
-       GAME ACTIONS
-       ========================================= */
-    const startRound = async () => {
-        const newWord = getRandomWord(usedWords);
-        setWordHistory([]);
-        setOnlineGuesses([]);
-
-        await setSharedState({
-            phase: 'GET_READY',
-            activePlayerId: currentPlayerId,
-            endTime: Date.now() + 3000, // 3 second prep
-            currentScore: 0,
-            currentWord: newWord
-        });
-    };
-
-    const handleActorReveal = async () => {
-        if (phase === 'ACTOR_REVEAL' && isActivePlayer) {
-            await setSharedState({
-                phase: 'PLAYING',
-                endTime: Date.now() + 60000
-            });
-        }
-    };
-
-    const handleCorrect = useCallback(async () => {
-        if (phase !== 'PLAYING' || (!isActivePlayer && mode !== 'local')) return;
-
-        const word = currentWord;
-        wordRef.current = word;
-
-        // Haptic feedback - success pattern
-        if (navigator.vibrate) {
-            navigator.vibrate([100, 50, 100]);
-        }
-
-        // Show correct animation
-        setShowCorrectAnimation(true);
-        setScoreAnimation(true);
-        setTimeout(() => setShowCorrectAnimation(false), 500);
-        setTimeout(() => setScoreAnimation(false), 400);
-
-        // Add to history
-        const newHistory = [...wordHistory, { word, result: 'correct' as const, timestamp: Date.now() }];
-        setWordHistory(newHistory);
-        setUsedWords(prev => new Set([...prev, word]));
-
-        // Get next word
-        const nextWord = getRandomWord(new Set([...usedWords, word]));
-
-        await setSharedState({
-            currentScore: currentScore + 1,
-            currentWord: nextWord
-        });
-    }, [phase, isActivePlayer, mode, currentWord, currentScore, wordHistory, usedWords, setSharedState]);
-
-    const handlePass = useCallback(async () => {
-        if (phase !== 'PLAYING' || (!isActivePlayer && mode !== 'local')) return;
-
-        const word = currentWord;
-
-        // Haptic feedback - pass pattern
-        if (navigator.vibrate) {
-            navigator.vibrate([50]);
-        }
-
-        // Show skip animation
-        setShowSkipAnimation(true);
-        setTimeout(() => setShowSkipAnimation(false), 400);
-
-        // Add to history as skipped
-        const newHistory = [...wordHistory, { word, result: 'skip' as const, timestamp: Date.now() }];
-        setWordHistory(newHistory);
-        setUsedWords(prev => new Set([...prev, word]));
-
-        // Get next word
-        const nextWord = getRandomWord(new Set([...usedWords, word]));
-
-        await setSharedState({
-            currentWord: nextWord
-        });
-    }, [phase, isActivePlayer, mode, currentWord, wordHistory, usedWords, setSharedState]);
-
-    const handleOnlineGuess = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!guessInput.trim() || phase !== 'PLAYING' || isActivePlayer) return;
-
-        const guess: OnlineGuess = {
-            playerId: currentPlayerId || 'unknown',
-            playerName: players.find(p => p.id === currentPlayerId)?.name || 'Player',
-            guess: guessInput.trim().toLowerCase(),
-            timestamp: Date.now()
-        };
-
-        setOnlineGuesses(prev => [...prev, guess]);
-        setGuessInput('');
-
-        // Check if guess matches (case insensitive)
-        if (guess.guess === currentWord.toLowerCase()) {
-            await handleCorrect();
-        }
-    };
-
-    const playAgain = async () => {
-        await setSharedState({
-            phase: 'LOBBY',
-            currentScore: 0,
-            currentWord: '',
-            activePlayerId: null
-        });
-        setWordHistory([]);
-        setUsedWords(new Set());
-    };
-
-    const nextRound = async () => {
-        const nextPlayerId = players[(players.findIndex(p => p.id === activePlayerId) + 1) % players.length]?.id;
-        await setSharedState({
-            phase: 'LOBBY',
-            activePlayerId: nextPlayerId,
-            currentRound: currentRound + 1
-        });
-    };
-
-    /* =========================================
-       RENDER HELPERS
-       ========================================= */
-    const renderLobby = () => (
-        <div className="charades-lobby">
-            <div className="icon-bounce">🎬</div>
-            <h1 className="charades-title">CHARADES</h1>
-            <p className="charades-subtitle">Act it out. Your team guesses.</p>
-
-            <div className="players-preview">
-                {players.map(p => (
-                    <span key={p.id} className={`player-badge ${p.isHost ? 'host' : ''}`}>
-                        {p.name} {p.isHost && '👑'}
-                    </span>
-                ))}
-            </div>
-
-            {mode === 'online' && !isHost && (
-                <p className="waiting-subtext">Waiting for host to start...</p>
-            )}
-
-            {(isHost || mode === 'local') && (
-                <button className="charades-btn" onClick={startRound}>
-                    {mode === 'local' ? "I'm Acting" : "Start Game"}
-                </button>
-            )}
-
-            <a href="/" className="exit-link">Return to Hub</a>
-        </div>
-    );
-
-    const renderGetReady = () => (
-        <div className="charades-getready">
-            <p className="getready-instruction">
-                {isActivePlayer
-                    ? "Get ready to act!"
-                    : `${activePlayerName} is up!`}
-            </p>
-            <h1 className="countdown-massive">{timeLeft}</h1>
-            {isActivePlayer && (
-                <p className="tap-to-start">Get into position...</p>
-            )}
-        </div>
-    );
-
-    const renderActorReveal = () => (
-        <div className="charades-actor-reveal" onClick={handleActorReveal}>
-            <div className="reveal-card">
-                <p className="reveal-label">Your Word Is</p>
-                <h1 className="reveal-word">{currentWord}</h1>
-            </div>
-            <p className="tap-to-start">Tap anywhere when ready</p>
-            {mode === 'local' && (
-                <p className="reveal-hint">Hold phone to forehead so only YOU can see</p>
-            )}
-        </div>
-    );
-
-    const renderPlaying = () => {
-        const timerPercent = (timeLeft / 60) * 100;
-        const isUrgent = timeLeft <= 10;
-
-        return (
-            <div className="charades-playing">
-                {/* Timer bar at top */}
-                <div className="timer-bar-container">
-                    <div
-                        className={`timer-bar-fill ${isUrgent ? 'urgent' : ''}`}
-                        style={{ width: `${timerPercent}%` }}
-                    />
-                </div>
-
-                {/* Header with timer and score */}
-                <div className="game-header">
-                    <div className={`timer-display ${isUrgent ? 'timer-urgent' : ''}`}>
-                        <span className="timer-icon">⏱️</span>
-                        <span>{timeLeft}s</span>
-                    </div>
-                    <div className={`score-display ${scoreAnimation ? 'score-bounce' : ''}`}>
-                        {currentScore} pts
-                    </div>
-                </div>
-
-                {/* Online players */}
-                {mode === 'online' && (
-                    <div className="online-players">
-                        {players.map(p => (
-                            <span key={p.id} className="online-player-badge">
-                                {p.name} {p.id === activePlayerId && '🎭'}
-                            </span>
-                        ))}
-                    </div>
-                )}
-
-                {/* Main game area */}
-                <div className="game-main">
-                    {/* Actor's view - shows word */}
-                    {isActorView ? (
-                        <>
-                            <div className={`word-card ${showCorrectAnimation ? 'correct' : ''} ${showSkipAnimation ? 'skip' : ''}`}>
-                                <p className="word-text">{currentWord}</p>
-                            </div>
-
-                            {/* Word history (small, for reference) */}
-                            {wordHistory.length > 0 && (
-                                <div className="word-history">
-                                    {wordHistory.slice(-5).map((item, i) => (
-                                        <span key={i} className={`history-word ${item.result}`}>
-                                            {item.result === 'correct' ? '✓' : '✗'} {item.word}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        /* Guesser view */
-                        <div className="guesser-view">
-                            <h2 className="guesser-title">{activePlayerName} is acting!</h2>
-                            <p className="guesser-subtitle">
-                                {mode === 'local'
-                                    ? "Call out your guesses!"
-                                    : "Type your guesses below"}
-                            </p>
-                        </div>
-                    )}
-
-                    {/* Online guess input */}
-                    {mode === 'online' && !isActorView && phase === 'PLAYING' && (
-                        <form className="guess-chat" onSubmit={handleOnlineGuess}>
-                            <div className="guess-input-wrapper">
-                                <input
-                                    type="text"
-                                    className="guess-input"
-                                    placeholder="Type your guess..."
-                                    value={guessInput}
-                                    onChange={e => setGuessInput(e.target.value)}
-                                    autoComplete="off"
-                                />
-                                <button type="submit" className="guess-submit">
-                                    Guess
-                                </button>
-                            </div>
-                            {onlineGuesses.length > 0 && (
-                                <div className="guess-list">
-                                    {onlineGuesses.slice(-10).map((g, i) => (
-                                        <span key={i} className={`guess-item ${g.playerId === activePlayerId ? 'actor' : ''}`}>
-                                            {g.playerName}: {g.guess}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-                        </form>
-                    )}
-                </div>
-
-                {/* Action buttons - 50% viewport height each */}
-                {isActorView && (
-                    <div className="controls-overlay">
-                        <div className="control-half pass-half" onClick={handlePass}>
-                            <span className="control-icon">⏭️</span>
-                            <span className="control-label">Pass</span>
-                        </div>
-                        <div className="control-half correct-half" onClick={handleCorrect}>
-                            <span className="control-icon">✅</span>
-                            <span className="control-label">Got It</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Non-actor waiting in online mode */}
-                {!isActorView && mode === 'online' && phase === 'PLAYING' && (
-                    <div className="controls-overlay">
-                        <div className="control-half pass-half" style={{ opacity: 0.5, cursor: 'default' }}>
-                            <span className="control-icon">⏭️</span>
-                            <span className="control-label">Waiting</span>
-                        </div>
-                        <div className="control-half correct-half" style={{ opacity: 0.5, cursor: 'default' }}>
-                            <span className="control-icon">✅</span>
-                            <span className="control-label">Waiting</span>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
-
-    const renderScore = () => (
-        <div className="charades-score">
-            <h1 className="score-title">Time's Up!</h1>
-
-            <div className="score-circle">
-                <span className="score-value">{currentScore}</span>
-                <span className="score-label">Points</span>
-            </div>
-
-            {/* Word summary */}
-            {wordHistory.length > 0 && (
-                <div className="word-history" style={{ marginTop: '1rem' }}>
-                    {wordHistory.map((item, i) => (
-                        <span key={i} className={`history-word ${item.result}`}>
-                            {item.result === 'correct' ? '✓' : '✗'} {item.word}
-                        </span>
-                    ))}
-                </div>
-            )}
-
-            <div className="score-actions">
-                {(isHost || mode === 'local') ? (
-                    <>
-                        <button className="charades-btn" onClick={startRound}>
-                            Play Again
-                        </button>
-                        {mode === 'online' && players.length > 1 && (
-                            <button className="charades-btn secondary" onClick={nextRound}>
-                                Next Player
-                            </button>
-                        )}
-                        <a href="/" className="exit-link">Exit to Hub</a>
-                    </>
-                ) : (
-                    <p className="waiting-subtext blink">Waiting for host to continue...</p>
-                )}
-            </div>
-        </div>
-    );
-
-    /* =========================================
-       MAIN RENDER
-       ========================================= */
+    // Online
     return (
-        <div className={`charades-container state-${phase.toLowerCase()}`}>
-            {phase === 'LOBBY' && renderLobby()}
-            {phase === 'GET_READY' && renderGetReady()}
-            {phase === 'ACTOR_REVEAL' && renderActorReveal()}
-            {phase === 'PLAYING' && renderPlaying()}
-            {phase === 'SCORE' && renderScore()}
+      <div className="cr-root cr-playing cr-bg-online">
+        <div className="cr-progress-track">
+          <div className={`cr-progress-fill ${urgent ? 'urgent' : ''}`} style={{ width: `${pct}%` }} />
         </div>
+        <div className="cr-hud">
+          <div className={`cr-hud-time ${urgent ? 'panic' : ''}`}>{timeLeft}s</div>
+          <div className="cr-hud-online-score">
+            <span className="cr-hud-you">You</span>
+            <span className="cr-hud-pts">{myScore} pts</span>
+          </div>
+        </div>
+        {isActor ? (
+          <div className="cr-online-actor-view">
+            <p className="cr-actor-badge">🎭 You're Acting</p>
+            <div className={`cr-word-card cr-wc-${wordAnim}`}>
+              <div className="cr-word-cat">{catEmoji}</div>
+              <p className="cr-word-text">{currentWord}</p>
+            </div>
+            <button className="cr-pass-online-btn" onClick={handleOnlinePass}>
+              Pass <span className="cr-penalty">−{ONLINE_PASS_PEN} pts</span>
+            </button>
+            {wordHistory.length > 0 && (
+              <div className="cr-trail">
+                {wordHistory.slice(-5).map((w, i) => (
+                  <span key={i} className={`cr-trail-chip cr-chip-${w.result}`}>
+                    {w.result === 'correct' ? `✓ ${w.word}` : `✗ ${w.word}`}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="cr-online-guesser-view">
+            <div className="cr-watch-banner">
+              <span className="cr-watch-name">{actorName}</span> is acting — type fast!
+            </div>
+            <div className="cr-guess-feed">
+              {onlineGuesses.slice(-8).map((g, i) => (
+                <div key={i} className="cr-guess-bubble">
+                  <span className="cr-gb-name">{g.playerName}</span>
+                  <span className="cr-gb-text">{g.text}</span>
+                </div>
+              ))}
+            </div>
+            <div className="cr-guess-row">
+              <input
+                className="cr-guess-input"
+                type="text"
+                placeholder="Your guess…"
+                value={guessInput}
+                onChange={e => setGuessInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleGuessSubmit()}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+              />
+              <button className="cr-guess-send" onClick={handleGuessSubmit}>→</button>
+            </div>
+            <button
+              className={`cr-stuck-btn ${iHaveVotedStuck ? 'voted' : ''}`}
+              onClick={handleStuck}
+              disabled={iHaveVotedStuck}
+            >
+              😤 Stuck! ({stuckVotes.length}/{mutinyThreshold})
+            </button>
+            {stuckVotes.length >= mutinyThreshold - 1 && stuckVotes.length > 0 && (
+              <p className="cr-mutiny-warn">⚠️ Mutiny almost triggered…</p>
+            )}
+          </div>
+        )}
+      </div>
     );
+  }
+
+  /* ---- ROUND END ---- */
+  if (phase === 'ROUND_END') {
+    const roundCorrect = wordHistory.filter(w => w.result === 'correct' && w.actorId === currentActorId).length;
+    return (
+      <div className={`cr-root cr-roundend cr-bg-${mode === 'local' ? currentTeam : 'online'}`}>
+        <div className="cr-roundend-inner">
+          <h1 className="cr-roundend-title">Round Over!</h1>
+          <div className={`cr-score-ring cr-ring-${mode === 'local' ? currentTeam : 'online'}`}>
+            <span className="cr-ring-num">{roundCorrect}</span>
+            <span className="cr-ring-label">this round</span>
+          </div>
+          {mode === 'local' && (
+            <div className="cr-totals-row">
+              <div className={`cr-total-pill red ${currentTeam === 'red' ? 'lit' : ''}`}>🔴 {teamScores.red}</div>
+              <span className="cr-total-vs">vs</span>
+              <div className={`cr-total-pill blue ${currentTeam === 'blue' ? 'lit' : ''}`}>{teamScores.blue} 🔵</div>
+            </div>
+          )}
+          <div className="cr-recap">
+            {wordHistory.slice(-12).map((w, i) => (
+              <span key={i} className={`cr-recap-chip cr-chip-${w.result}`}>
+                {w.result === 'correct' ? '✓' : '✗'} {w.word}
+              </span>
+            ))}
+          </div>
+          {(isHost || mode === 'local') && (
+            <button className="cr-main-btn cr-btn-white"
+              onClick={mode === 'local' ? nextRound : nextOnlineRound}>
+              {actorIndex + 1 >= totalRounds ? 'See Final Score 🏆' : 'Next Team\'s Turn →'}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---- FINAL SCORE ---- */
+  if (phase === 'FINAL_SCORE') {
+    if (mode === 'local') {
+      const winner = teamScores.red > teamScores.blue ? 'red' : teamScores.blue > teamScores.red ? 'blue' : 'tie';
+      return (
+        <div className={`cr-root cr-final cr-bg-${winner !== 'tie' ? winner : 'online'}`}>
+          <div className="cr-final-inner">
+            <h1 className="cr-final-title">GAME OVER</h1>
+            <div className="cr-winner-block">
+              <span className="cr-winner-trophy">{winner !== 'tie' ? '🏆' : '🤝'}</span>
+              <span className="cr-winner-text">
+                {winner !== 'tie' ? `TEAM ${winner.toUpperCase()} WINS!` : "IT'S A TIE!"}
+              </span>
+            </div>
+            <div className="cr-final-scores">
+              <div className={`cr-final-team red ${winner === 'red' ? 'champ' : ''}`}>
+                🔴 Team Red<br /><strong>{teamScores.red}</strong><br /><small>pts</small>
+              </div>
+              <div className={`cr-final-team blue ${winner === 'blue' ? 'champ' : ''}`}>
+                🔵 Team Blue<br /><strong>{teamScores.blue}</strong><br /><small>pts</small>
+              </div>
+            </div>
+            <button className="cr-main-btn cr-btn-white"
+              onClick={() => setSharedState({ phase: 'LOBBY', teamScores: { red: 0, blue: 0 }, wordHistory: [] })}>
+              Play Again
+            </button>
+            <a href="/" className="cr-exit">← Back to Hub</a>
+          </div>
+        </div>
+      );
+    }
+
+    // Online leaderboard
+    const sorted = Object.entries(playerScores)
+      .map(([id, score]) => ({ id, name: players.find(p => p.id === id)?.name ?? id, score }))
+      .sort((a, b) => b.score - a.score);
+    const bestActorId = Object.entries(actorPoints).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const sharpId = Object.entries(sharpPoints).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+    return (
+      <div className="cr-root cr-final cr-bg-online">
+        <div className="cr-final-inner">
+          <h1 className="cr-final-title">FINAL RESULTS</h1>
+          <div className="cr-leaderboard">
+            {sorted.map((p, i) => (
+              <div key={p.id} className={`cr-lb-row cr-lb-${i < 3 ? ['gold', 'silver', 'bronze'][i] : 'plain'}`}>
+                <span className="cr-lb-rank">{['🥇', '🥈', '🥉'][i] ?? `#${i + 1}`}</span>
+                <span className="cr-lb-name">{p.name}</span>
+                <span className="cr-lb-pts">{p.score}</span>
+              </div>
+            ))}
+          </div>
+          <div className="cr-awards">
+            <h2 className="cr-awards-title">🏅 Special Awards</h2>
+            <div className="cr-award-card cr-award-actor">
+              <span className="cr-award-icon">🎭</span>
+              <span className="cr-award-label">Best Actor</span>
+              <span className="cr-award-name">{players.find(p => p.id === bestActorId)?.name ?? '—'}</span>
+            </div>
+            <div className="cr-award-card cr-award-sharp">
+              <span className="cr-award-icon">⚡</span>
+              <span className="cr-award-label">Sharpest Mind</span>
+              <span className="cr-award-name">{players.find(p => p.id === sharpId)?.name ?? '—'}</span>
+            </div>
+          </div>
+          <button className="cr-main-btn cr-btn-blue"
+            onClick={() => setSharedState({ phase: 'LOBBY', playerScores: {}, wordHistory: [] })}>
+            Play Again
+          </button>
+          <a href="/" className="cr-exit">← Back to Hub</a>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default CharadesGame;
