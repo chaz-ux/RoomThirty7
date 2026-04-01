@@ -187,7 +187,6 @@ const MafiaGame: React.FC = () => {
   const isDead     = myHealth === 'dead';
   const isMafia    = myRole === 'MAFIA';
   const alive      = players.filter((p: any) => health[p.id] !== 'dead');
-  const mafiaAlive = players.filter((p: any) => roles[p.id] === 'MAFIA' && health[p.id] !== 'dead');
 
   // Reset reveal step when revealIdx changes
   useEffect(() => { setRevealStep('waiting'); }, [revealIdx]);
@@ -212,9 +211,10 @@ const MafiaGame: React.FC = () => {
       
       // AUTO-LOCK: Check if all alive players have voted
       const latest = stateRef.current;
-      if ((phase === 'VOTE' || phase === 'VOTE_REVOTE') && latest.alive && latest.dayVotes) {
+      if ((phase === 'VOTE' || phase === 'VOTE_REVOTE') && latest.dayVotes) {
         const votedCount = Object.keys(latest.dayVotes).length;
-        const aliveCount = latest.alive.length;
+        const aliveList = alive || [];
+        const aliveCount = aliveList.length;
         if (votedCount >= aliveCount && (isHost || isPassPlay)) {
           clearInterval(timerRef.current);
           resolveVotesFromState(latest.dayVotes || {}, latest.health || {}, phase === 'VOTE_REVOTE');
@@ -396,17 +396,17 @@ const MafiaGame: React.FC = () => {
     await setSharedState({ dayVotes: { ...dayVotes, [currentPlayerId]: targetId } });
   };
 
-  // LOCAL-ONLY: host directly selects who gets eliminated
-  const hostSelectElimination = async (targetId: string | null) => {
-    const newHealth = { ...health };
-    if (targetId) { newHealth[targetId] = 'dead'; sfx('kill'); vibe([300, 100, 300]); }
-    const w = checkWin(newHealth);
-    await setSharedState({
-      phase: 'VOTE_REVEAL', health: newHealth,
-      eliminatedThisRound: targetId, woundedThisRound: null,
-      winner: w, dayVotes: {},
-    });
-  };
+  // LOCAL-ONLY: host directly selects who gets eliminated (currently unused - using unified voting)
+  // const hostSelectElimination = async (targetId: string | null) => {
+  //   const newHealth = { ...health };
+  //   if (targetId) { newHealth[targetId] = 'dead'; sfx('kill'); vibe([300, 100, 300]); }
+  //   const w = checkWin(newHealth);
+  //   await setSharedState({
+  //     phase: 'VOTE_REVEAL', health: newHealth,
+  //     eliminatedThisRound: targetId, woundedThisRound: null,
+  //     winner: w, dayVotes: {},
+  //   });
+  // };
 
   // ONLINE: resolve from ballot
   // Key fix: takes dayVotes + health as parameters so it's never stale
@@ -414,11 +414,16 @@ const MafiaGame: React.FC = () => {
   const resolveVotesFromState = useCallback(async (
     dv: Record<string, string | 'skip'>,
     h: Record<string, Health>,
-    isRevote: boolean = false
+    isRevote: boolean
   ) => {
     const counts: Record<string, number> = {};
     Object.values(dv).forEach(v => {
-      if (v && v !== 'skip') counts[v] = (counts[v] ?? 0) + 1;
+      // Skip votes only count in initial vote, not in re-votes
+      if (isRevote) {
+        if (v && v !== 'skip') counts[v] = (counts[v] ?? 0) + 1;
+      } else {
+        if (v && v !== 'skip') counts[v] = (counts[v] ?? 0) + 1;
+      }
     });
     let maxV = 0; let topId: string | null = null;
     Object.entries(counts).forEach(([id, c]) => { if (c > maxV) { maxV = c; topId = id; } });
@@ -932,10 +937,6 @@ const MafiaGame: React.FC = () => {
   // ── DAY DISCUSS ─────────────────────────────────────────────
   if (phase === 'DAY_DISCUSS') {
     const urgent = timeLeft <= 20;
-    const allVotedEarly = () => {
-      // Check if all alive players have unanimously decided to vote early
-      // For now, host can manually trigger via button below
-    };
     
     return (
       <div className="mf-root mf-day-bg">
@@ -1054,7 +1055,7 @@ const MafiaGame: React.FC = () => {
 
           {isHost && (
             <button className="mf-main-btn mf-btn-red mf-resolve-btn"
-              onClick={() => resolveVotesFromState(dayVotes, health)}>
+              onClick={() => resolveVotesFromState(dayVotes, health, false)}>
               ⚖️ End Vote Now
             </button>
           )}

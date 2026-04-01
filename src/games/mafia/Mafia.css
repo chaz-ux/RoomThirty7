@@ -787,7 +787,6 @@
 }
 .mf-ghost-sub { color: var(--mf-dim); font-style: italic; font-size: 0.85rem; }
 
-.mf-ghost-observe { }
 .mf-alive-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
 .mf-alive-chip {
   background: var(--mf-surface); border: 1px solid var(--mf-border);

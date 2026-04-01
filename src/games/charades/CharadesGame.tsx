@@ -170,7 +170,7 @@ const ONLINE_MUTINY_PEN = 50;
    ========================================= */
 const CharadesGame: React.FC = () => {
   const { players, sharedState, setSharedState, isHost, currentPlayerId, mode } =
-    useMultiplayer() as {
+    useMultiplayer() as unknown as {
       players: Player[];
       sharedState: Partial<SharedState> | null;
       setSharedState: (s: Partial<SharedState>) => Promise<void>;
