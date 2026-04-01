@@ -59,9 +59,9 @@ interface SS {
   ghostChat: ChatMsg[];
 }
 
-const DISCUSS_TIME = 90;
-const VOTE_TIME    = 30;   // online only
-const NIGHT_TIME   = 25;   // online only
+const DISCUSS_TIME = 120;  // 2 minutes for discussion (can skip early to vote)
+const VOTE_TIME    = 45;   // digital voting timer
+const NIGHT_TIME   = 30;   // online mafia voting timer
 
 const getMafiaCount = (n: number) => n >= 9 ? 3 : n >= 6 ? 2 : 1;
 
@@ -154,6 +154,7 @@ const MafiaGame: React.FC = () => {
   const [ghostInput,      setGhostInput]      = useState('');
   const [timeLeft,        setTimeLeft]        = useState(0);
   const [showConfetti,    setShowConfetti]    = useState(false);
+  const [spectateChoice,  setSpectateChoice]  = useState<'playing'|'spectate'|null>(null); // After elimination
 
   const timerRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
@@ -476,6 +477,7 @@ const MafiaGame: React.FC = () => {
           eliminatedThisRound: null, woundedThisRound: null, chat: [],
         });
         setLocalNightPhase('waiting');
+        setSpectateChoice(null);  // Reset spectate choice for next round
         sfx('night');
       }
     }, 4000);
@@ -757,10 +759,17 @@ const MafiaGame: React.FC = () => {
     if (localNightPhase === 'action') return (
       <div className={`mf-root ${isMafiaA ? 'mf-night-bg' : 'mf-placebo-bg'}`}>
         <div className="mf-action-wrap">
+          {/* Phase direction header */}
+          <div className="mf-phase-header">
+            <h2 className="mf-phase-title">{isMafiaA ? '🔪 MAFIA ATTACK' : '💭 VILLAGE SUSPECTS'}</h2>
+            <p className="mf-phase-hint">
+              {isMafiaA ? 'Select your target. You can attack anyone, including yourself.' : 'Vote on your suspicions. Villagers don\'t actually affect anything.'}
+            </p>
+          </div>
+
           <h2 className="mf-action-title">
             {isMafiaA ? '🎯 Pick your target' : '🤔 Who do you suspect?'}
           </h2>
-          {isMafiaA && <p className="mf-action-hint">You can target yourself as a false flag.</p>}
           <div className="mf-target-grid">
             {alive.map((p: any) => (
               <button key={p.id}
@@ -774,12 +783,12 @@ const MafiaGame: React.FC = () => {
           </div>
           {isMafiaA && (
             <button className="mf-ghost-btn" onClick={() => handleNightAction(null)}>
-              Skip — don't attack tonight
+              ✋ Skip — don't attack tonight
             </button>
           )}
           {!isMafiaA && (
             <button className="mf-ghost-btn" onClick={() => handleNightAction(null)}>
-              Continue →
+              → Continue
             </button>
           )}
         </div>
@@ -812,23 +821,30 @@ const MafiaGame: React.FC = () => {
           ))}
         </div>
         <div className="mf-online-night-inner">
+          {/* Phase direction header */}
+          <div className="mf-phase-header">
+            <h2 className="mf-phase-title">🔪 MAFIA VOTE - UNANIMOUS DECISION</h2>
+            <p className="mf-phase-hint">Each mafia votes publicly. Last mafia's choice is final. You can vote for anyone, including yourself.</p>
+          </div>
+
           <div className="mf-night-hud">
-            <div className="mf-online-phase-label">🔪 MAFIA STRIKES</div>
+            <div className="mf-online-phase-label">🔪 NIGHT {roundNum} - MAFIA PLANNING</div>
             <div className="mf-night-timer">{timeLeft}s</div>
           </div>
           <div className="mf-timer-track"><div className="mf-timer-fill night" style={{ width: `${(timeLeft / NIGHT_TIME) * 100}%` }} /></div>
 
           <div className="mf-mafia-crew">
-            {players.filter((p: any) => roles[p.id] === 'MAFIA').map((p: any) => (
+            <p className="mf-crew-label">Mafia voting:</p>
+            {players.filter((p: any) => roles[p.id] === 'MAFIA' && health[p.id] !== 'dead').map((p: any) => (
               <div key={p.id} className="mf-crew-chip">
                 <span>{p.name.charAt(0)}</span>
                 <span>{p.name}</span>
-                {mafiaVotes[p.id] && <span className="mf-voted-tick">✓</span>}
+                {mafiaVotes[p.id] && <span className="mf-voted-tick">✓ {players.find((x: any) => x.id === mafiaVotes[p.id])?.name}</span>}
               </div>
             ))}
           </div>
 
-          <h3 className="mf-action-title">Pick your target ({Math.ceil(mafiaAlive.length / 2)} votes needed)</h3>
+          <h3 className="mf-action-title">🎯 Select your target</h3>
           <div className="mf-target-grid">
             {alive.map((p: any) => {
               const vc = voteCounts[p.id] ?? 0;
@@ -845,7 +861,7 @@ const MafiaGame: React.FC = () => {
               );
             })}
           </div>
-          {myMafiaVote && <p className="mf-wait-pulse">Vote cast. Waiting for crew…</p>}
+          {myMafiaVote && <p className="mf-wait-pulse">✓ Vote locked. Waiting for crew…</p>}
         </div>
       </div>
     );
@@ -854,6 +870,11 @@ const MafiaGame: React.FC = () => {
     return (
       <div className="mf-root mf-villager-night">
         <div className="mf-villager-night-content">
+          {/* Phase direction header */}
+          <div className="mf-phase-header">
+            <h2 className="mf-phase-title">🌙 THE NIGHT</h2>
+            <p className="mf-phase-hint">Stay quiet. The Mafia is planning. No one can hear you.</p>
+          </div>
           <div className="mf-pulse-ring" /><div className="mf-pulse-ring delay1" /><div className="mf-pulse-ring delay2" />
           <h1 className="mf-senses-title">CLOSE YOUR EYES</h1>
           <p className="mf-senses-sub">The night is dark in Nairobi…</p>
@@ -873,6 +894,11 @@ const MafiaGame: React.FC = () => {
       <div className="mf-root mf-morning-bg">
         <div className="mf-sun-container"><div className="mf-sun-rays" /><div className="mf-sun" /></div>
         <div className="mf-morning-inner">
+          {/* Phase direction header */}
+          <div className="mf-phase-header">
+            <h2 className="mf-phase-title">🌅 MORNING REPORT</h2>
+            <p className="mf-phase-hint">The night has passed. What happened?</p>
+          </div>
           <h1 className="mf-morning-title">MORNING</h1>
           {quiet && (
             <div className="mf-reveal-card quiet">
@@ -906,17 +932,26 @@ const MafiaGame: React.FC = () => {
   // ── DAY DISCUSS ─────────────────────────────────────────────
   if (phase === 'DAY_DISCUSS') {
     const urgent = timeLeft <= 20;
+    const allVotedEarly = () => {
+      // Check if all alive players have unanimously decided to vote early
+      // For now, host can manually trigger via button below
+    };
+    
     return (
       <div className="mf-root mf-day-bg">
         <div className="mf-sun-container"><div className="mf-sun-rays" /><div className="mf-sun" /></div>
         <div className="mf-day-inner">
+          {/* Phase direction header */}
+          <div className="mf-phase-header">
+            <h2 className="mf-phase-title">💬 DISCUSSION PHASE</h2>
+            <p className="mf-phase-hint">Sow doubt. Build alliances. Find the Mafia.</p>
+          </div>
+
           <div className="mf-day-hud">
             <h1 className="mf-day-title">DAY {roundNum}</h1>
             <div className={`mf-day-timer ${urgent ? 'urgent' : ''}`}>{timeLeft}s</div>
           </div>
           <div className="mf-timer-track"><div className={`mf-timer-fill ${urgent ? 'urgent' : ''}`} style={{ width: `${timerPct}%` }} /></div>
-
-          <p className="mf-day-instruction">Point fingers. Build alliances. Find the Mafia.</p>
 
           <div className="mf-alive-grid">
             {alive.map((p: any, i: number) => (
@@ -929,26 +964,35 @@ const MafiaGame: React.FC = () => {
             ))}
           </div>
 
-          {/* Online chat */}
-          {!isPassPlay && !isDead && (
+          {/* Online chat for discussion - all players can chat unless they chose silent spectate */}
+          {!isPassPlay && spectateChoice !== 'spectate' && (
             <div className="mf-chat-panel">
               <div className="mf-chat-feed">
-                {chat.slice(-10).map((m: any, i: number) => {
+                {chat.slice(-15).map((m: any, i: number) => {
                   const sender = players.find((p: any) => p.id === m.playerId);
+                  const senderDead = health[m.playerId] === 'dead';
                   return (
-                    <div key={i} className="mf-chat-msg">
-                      <span className="mf-chat-name">{sender?.name}</span>
+                    <div key={i} className={`mf-chat-msg ${senderDead ? 'dead-player' : ''}`}>
+                      <span className="mf-chat-name">{sender?.name} {senderDead && '👻'}</span>
                       <span className="mf-chat-text">{m.text}</span>
                     </div>
                   );
                 })}
               </div>
               <form className="mf-chat-form" onSubmit={sendChat}>
-                <input className="mf-chat-input" placeholder="Say something…"
-                  value={chatInput} onChange={e => setChatInput(e.target.value)} autoComplete="off"/>
+                <input className="mf-chat-input" placeholder="Accuse someone…"
+                  value={chatInput} onChange={e => setChatInput(e.target.value)} autoComplete="off" />
                 <button className="mf-chat-send" type="submit">→</button>
               </form>
             </div>
+          )}
+
+          {/* Skip to vote button - only for host */}
+          {isHost && (
+            <button className="mf-main-btn mf-btn-green mf-skip-vote-btn"
+              onClick={() => setSharedState({ phase: 'VOTE', dayVotes: {}, endTime: Date.now() + VOTE_TIME * 1000 })}>
+              📋 Skip to Voting →
+            </button>
           )}
         </div>
       </div>
@@ -959,57 +1003,24 @@ const MafiaGame: React.FC = () => {
   if (phase === 'VOTE') {
     const myVote = dayVotes[currentPlayerId ?? ''];
     const urgent = timeLeft <= 5;
-
-    // ─────────────────────────────────────────────────────────
-    // LOCAL MODE: Host-controlled vote
-    // One phone — nobody can vote digitally. Host calls the
-    // room vote out loud, counts hands, then taps who gets out.
-    // ─────────────────────────────────────────────────────────
-    if (isPassPlay) {
-      return (
-        <div className="mf-root mf-vote-bg">
-          <div className="mf-vote-inner">
-            <h1 className="mf-vote-title">🗳️ VOTE</h1>
-            <p className="mf-vote-instruction">
-              Call it out loud. Count hands. Then tap who the village wants to eliminate.
-            </p>
-            <p className="mf-vote-sub">Tap "Nobody" if there's a tie or no majority.</p>
-
-            <div className="mf-target-grid">
-              {alive.map((p: any) => (
-                <button key={p.id}
-                  className={`mf-target-btn ${health[p.id] === 'wounded' ? 'wounded' : ''}`}
-                  onClick={() => hostSelectElimination(p.id)}>
-                  <span className="mf-target-av">{p.name.charAt(0)}</span>
-                  <span className="mf-target-name">{p.name}</span>
-                  {health[p.id] === 'wounded' && <span className="mf-target-wound">⚠️</span>}
-                </button>
-              ))}
-            </div>
-
-            <button className="mf-ghost-btn mf-skip" onClick={() => hostSelectElimination(null)}>
-              🤝 It's a tie — nobody leaves
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // ONLINE MODE: Digital vote with timer
-    // ─────────────────────────────────────────────────────────
     const votablePlayers = alive.filter((p: any) => p.id !== currentPlayerId);
     const voteCountsDay: Record<string, number> = {};
     Object.values(dayVotes).forEach((v: any) => {
       if (v && v !== 'skip') voteCountsDay[v] = (voteCountsDay[v] ?? 0) + 1;
     });
-    const totalVoted = Object.keys(dayVotes).length;
+    const totalVoted = Object.keys(dayVotes).filter((pid) => dayVotes[pid] !== 'skip').length;
 
     return (
       <div className="mf-root mf-vote-bg">
         <div className="mf-vote-inner">
+          {/* Phase direction header */}
+          <div className="mf-phase-header">
+            <h2 className="mf-phase-title">🗳️ VOTING PHASE</h2>
+            <p className="mf-phase-hint">Public digital ballot. Cast your vote now. No skipping allowed.</p>
+          </div>
+
           <div className="mf-vote-hud">
-            <h1 className="mf-vote-title">🗳️ VOTE</h1>
+            <h1 className="mf-vote-title">WHO'S THE MAFIA?</h1>
             <div className={`mf-vote-timer ${urgent ? 'urgent' : ''}`}>{timeLeft}s</div>
           </div>
           <div className="mf-timer-track">
@@ -1019,8 +1030,8 @@ const MafiaGame: React.FC = () => {
 
           <p className="mf-vote-instruction">
             {myVote
-              ? `You voted for ${players.find((p: any) => p.id === myVote)?.name ?? 'Skip'} · ${totalVoted}/${alive.length} voted`
-              : `Who's the Mafia? ${totalVoted}/${alive.length} voted`}
+              ? `✓ You voted for ${players.find((p: any) => p.id === myVote)?.name ?? '?'} · ${totalVoted}/${alive.length} voted`
+              : `${totalVoted}/${alive.length} voted`}
           </p>
 
           {!myVote && !isDead && (
@@ -1038,10 +1049,6 @@ const MafiaGame: React.FC = () => {
                   </button>
                 );
               })}
-              <button className="mf-target-btn skip" onClick={() => castDayVote('skip')}>
-                <span className="mf-target-av">—</span>
-                <span className="mf-target-name">Skip</span>
-              </button>
             </div>
           )}
 
@@ -1070,8 +1077,14 @@ const MafiaGame: React.FC = () => {
     return (
       <div className="mf-root mf-vote-bg">
         <div className="mf-vote-inner">
+          {/* Phase direction header */}
+          <div className="mf-phase-header">
+            <h2 className="mf-phase-title">🗳️ RE-VOTE PHASE</h2>
+            <p className="mf-phase-hint">It was a tie! Choose someone. No skipping allowed.</p>
+          </div>
+
           <div className="mf-vote-hud">
-            <h1 className="mf-vote-title">🗳️ RE-VOTE</h1>
+            <h1 className="mf-vote-title">TIEBREAKER VOTE</h1>
             <div className={`mf-vote-timer ${urgent ? 'urgent' : ''}`}>{timeLeft}s</div>
           </div>
           <div className="mf-timer-track">
@@ -1081,8 +1094,8 @@ const MafiaGame: React.FC = () => {
 
           <p className="mf-vote-instruction">
             {myVote
-              ? `You voted for ${players.find((p: any) => p.id === myVote)?.name ?? '?'} · ${totalVoted}/${alive.length} voted`
-              : `It was a tie! Everyone must pick someone. ${totalVoted}/${alive.length} voted`}
+              ? `✓ You voted for ${players.find((p: any) => p.id === myVote)?.name ?? '?'} · ${totalVoted}/${alive.length} voted`
+              : `${totalVoted}/${alive.length} voted`}
           </p>
 
           {!myVote && !isDead && (
@@ -1106,7 +1119,7 @@ const MafiaGame: React.FC = () => {
           {isHost && (
             <button className="mf-main-btn mf-btn-red mf-resolve-btn"
               onClick={() => resolveVotesFromState(dayVotes, health, true)}>
-              ⚖️ End Re-Vote Now
+              ⚖️ Finalize Vote
             </button>
           )}
         </div>
@@ -1150,6 +1163,35 @@ const MafiaGame: React.FC = () => {
   if (phase === 'EXECUTION') {
     const exec    = players.find((p: any) => p.id === eliminated);
     const wasMaf  = exec ? roles[exec.id] === 'MAFIA' : false;
+    const iCurrentEliminated = currentPlayerId === eliminated;
+
+    // If this player was just eliminated, ask them to choose: stay and watch or spectate
+    if (iCurrentEliminated && spectateChoice === null) {
+      return (
+        <div className="mf-root mf-exec-choice-bg">
+          <div className="mf-exec-choice-wrap">
+            <h1 className="mf-exec-choice-title">You were eliminated</h1>
+            <p className="mf-exec-choice-sub">
+              Your role: <strong>{wasMaf ? '🔪 MAFIA' : '🌾 VILLAGER'}</strong>
+            </p>
+            <p className="mf-exec-choice-info">What would you like to do?</p>
+            <div className="mf-exec-choice-buttons">
+              <button className="mf-main-btn mf-btn-amber"
+                onClick={() => setSpectateChoice('playing')}>
+                👀 Stay & Watch
+              </button>
+              <button className="mf-main-btn mf-btn-blue"
+                onClick={() => setSpectateChoice('spectate')}>
+                💭 Spectate Mode
+              </button>
+            </div>
+            <p className="mf-exec-choice-hint">
+              Stay: Contribute to discussions · Spectate: Silent observer
+            </p>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className={`mf-root ${exec ? (wasMaf ? 'mf-exec-mafia' : 'mf-exec-village') : 'mf-exec-tie'}`}>
