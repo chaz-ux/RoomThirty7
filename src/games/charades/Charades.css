@@ -206,6 +206,20 @@
 .cr-score-blue.active { border-color: var(--cr-blue); background: rgba(30,111,255,0.15); }
 .cr-score-vs { color: var(--cr-muted); font-size: 0.85rem; }
 
+.cr-my-team-badge {
+  font-family: var(--cr-font);
+  font-size: 1rem; font-weight: 700;
+  padding: 0.8rem 1.5rem;
+  background: rgba(0,232,135,0.15);
+  border: 2px solid var(--cr-green);
+  border-radius: 1rem;
+  color: var(--cr-green);
+  text-shadow: 0 0 10px rgba(0,232,135,0.5);
+  animation: crSlideDown 0.5s ease-out;
+  margin-top: 0.5rem;
+}
+.cr-my-team-badge p { margin: 0; }
+
 .cr-spotlight {
   display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
 }

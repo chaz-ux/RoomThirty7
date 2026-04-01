@@ -143,6 +143,8 @@ interface SharedState {
   teamScores: { red: number; blue: number };
   currentTeam: Team;
   actorIndex: number;
+  playerTeams: Record<string, Team>;   // NEW: Track each player's team assignment
+  playersWhoActed: string[];            // NEW: Track who has already acted
   playerScores: Record<string, number>;
   actorPoints: Record<string, number>;
   sharpPoints: Record<string, number>;
@@ -195,6 +197,8 @@ const CharadesGame: React.FC = () => {
   const teamScores = s.teamScores ?? { red: 0, blue: 0 };
   const currentTeam = s.currentTeam ?? 'red';
   const actorIndex = s.actorIndex ?? 0;
+  const playerTeams = s.playerTeams ?? {};
+  const playersWhoActed = s.playersWhoActed ?? [];
   const playerScores = s.playerScores ?? {};
   const actorPoints = s.actorPoints ?? {};
   const sharpPoints = s.sharpPoints ?? {};
@@ -209,8 +213,11 @@ const CharadesGame: React.FC = () => {
   const skipLockUntil = s.skipLockUntil ?? 0;
   const activePlayerId = s.activePlayerId ?? null;
 
-  const isActor = mode === 'local' ? true : currentPlayerId === onlineActorId;
+  const getPlayerTeam = (playerId: string): Team | null => playerTeams[playerId] ?? null;
+  const myTeam = getPlayerTeam(currentPlayerId ?? '');
+  const myTeamLabel = myTeam ? (myTeam === 'red' ? '🔴 RED TEAM' : '🔵 BLUE TEAM') : null;
   const currentActorId = mode === 'local' ? activePlayerId : onlineActorId;
+  const isActor = currentActorId === currentPlayerId;
   const actorName = players.find(p => p.id === currentActorId)?.name ?? 'Someone';
   const myScore = playerScores[currentPlayerId ?? ''] ?? 0;
   const guesserCount = mode === 'online' ? players.filter(p => p.id !== onlineActorId).length : 0;
@@ -328,18 +335,23 @@ const CharadesGame: React.FC = () => {
   const createTeams = async () => {
     const shuffled = shuffleArray([...players]);
     const half = Math.ceil(shuffled.length / 2);
-    // Tag players with teams
-    const withTeams = shuffled.map((p, i) => ({ ...p, team: (i < half ? 'red' : 'blue') as Team }));
-    const redActor = withTeams.filter(p => p.team === 'red')[0];
-    const rounds = Math.min(players.length * 2, 8);
+    // Create team assignments for all players
+    const teamAssignments = Object.fromEntries(
+      shuffled.map((p, i) => [p.id, (i < half ? 'red' : 'blue') as Team])
+    );
+    const redPlayers = shuffled.filter((_, i) => i < half);
+    const firstActor = redPlayers[0];
+    const totalRounds = shuffled.length; // Everyone acts once
     await setSharedState({
       phase: 'HUDDLE',
       teamScores: { red: 0, blue: 0 },
       currentTeam: 'red',
       actorIndex: 0,
-      activePlayerId: redActor.id,
+      playerTeams: teamAssignments,
+      playersWhoActed: [],
+      activePlayerId: firstActor.id,
       roundNumber: 1,
-      totalRounds: rounds,
+      totalRounds,
       wordHistory: [],
     });
   };
@@ -471,18 +483,27 @@ const CharadesGame: React.FC = () => {
   };
 
   const nextRound = async () => {
-    const next = actorIndex + 1;
-    if (next >= totalRounds) { await setSharedState({ phase: 'FINAL_SCORE' }); return; }
-    const nextTeam: Team = next % 2 === 0 ? 'red' : 'blue';
-    const teamPlayers = players.filter(p => p.team === nextTeam);
-    const nextActor = teamPlayers[Math.floor(Math.random() * Math.max(1, teamPlayers.length))];
+    // Find next player who hasn't acted yet
+    const unactedPlayers = players.filter(p => !playersWhoActed.includes(p.id));
+    if (unactedPlayers.length === 0) {
+      // Everyone has acted - game over
+      await setSharedState({ phase: 'FINAL_SCORE' });
+      return;
+    }
+    
+    const nextActor = unactedPlayers[0];
+    const nextTeam = playerTeams[nextActor.id] ?? 'red';
+    const updatedActed = [...playersWhoActed, nextActor.id];
+    const newRound = updatedActed.length;
+    
     await setSharedState({
       phase: 'HUDDLE',
-      actorIndex: next,
+      actorIndex: newRound - 1,
       currentTeam: nextTeam,
-      activePlayerId: nextActor?.id ?? players[0].id,
+      activePlayerId: nextActor.id,
+      playersWhoActed: updatedActed,
       currentWord: getRandomWord(new Set(wordHistory.map(w => w.word))),
-      roundNumber: roundNumber + 1,
+      roundNumber: newRound,
     });
   };
 
@@ -579,6 +600,11 @@ const CharadesGame: React.FC = () => {
               <strong>{teamScores.blue}</strong> 🔵
             </div>
           </div>
+          {myTeamLabel && (
+            <div className="cr-my-team-badge">
+              <p>{myTeamLabel}</p>
+            </div>
+          )}
           <div className="cr-spotlight">
             <div className="cr-spotlight-avatar">{actor?.name?.charAt(0).toUpperCase()}</div>
             <h2 className="cr-spotlight-name">{actor?.name}</h2>
