@@ -1263,3 +1263,275 @@
 }
 
 @keyframes mfPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+/* ═══════════════════════════════════════════════════════════════
+   NEW ADDITIONS — full redesign patch
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Phase instruction block — appears top of every phase ─── */
+.mf-phase-instruct {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.mf-phase-instruct.dark {
+  background: rgba(0,0,0,0.35);
+  border-color: rgba(255,255,255,0.07);
+}
+.mf-phase-instruct.centered { align-items: center; text-align: center; }
+.mf-phase-instruct-icon { font-size: 2rem; }
+.mf-phase-instruct h2 {
+  font-family: var(--mf-disp);
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  color: var(--mf-white);
+}
+.mf-phase-instruct p {
+  font-size: 0.84rem;
+  color: var(--mf-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+.mf-phase-instruct strong { color: var(--mf-white); }
+
+/* ── Previous Mafia target indicator (night phase) ──────── */
+.mf-prev-target {
+  background: rgba(232,24,42,0.12);
+  border: 1.5px solid rgba(232,24,42,0.3);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  width: 100%;
+}
+.mf-prev-target.compact {
+  flex-direction: row;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: var(--mf-muted);
+}
+.mf-prev-target.compact strong { color: var(--mf-white); }
+.mf-prev-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mf-muted);
+}
+.mf-prev-name {
+  font-family: var(--mf-disp);
+  font-size: 1.6rem;
+  color: var(--mf-red);
+  letter-spacing: 0.06em;
+}
+.mf-prev-hint {
+  font-size: 0.8rem;
+  color: var(--mf-dim);
+  font-style: italic;
+}
+
+/* ── Solo mafia note ─────────────────────────────────────── */
+.mf-solo-mafia {
+  font-size: 0.85rem;
+  color: rgba(232,24,42,0.7);
+  font-style: italic;
+  margin-top: 6px;
+}
+
+/* ── Mafia crew in online night ──────────────────────────── */
+.mf-crew-label { font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mf-dim); margin: 0 0 6px; }
+.mf-crew-pending { color: var(--mf-dim); font-size: 0.78rem; font-style: italic; }
+.mf-crew-av {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: var(--mf-red);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mf-disp);
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+/* ── Mafia private chat ──────────────────────────────────── */
+.mf-mafia-chat {
+  width: 100%;
+  background: rgba(232,24,42,0.06);
+  border: 1.5px solid rgba(232,24,42,0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.mf-mafia-chat .mf-section-label {
+  padding: 10px 14px 4px;
+  border-bottom: 1px solid rgba(232,24,42,0.15);
+}
+.mf-mafia-chat-feed {
+  max-height: 130px;
+  overflow-y: auto;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mf-mafia-msg {
+  display: flex;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+.mf-mafia-msg-name {
+  color: var(--mf-red);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.mf-mafia-input {
+  background: rgba(232,24,42,0.08) !important;
+  border-color: rgba(232,24,42,0.3) !important;
+}
+.mf-mafia-input:focus { border-color: var(--mf-red) !important; }
+
+/* ── Chat ghost message ──────────────────────────────────── */
+.mf-chat-msg.ghost-msg .mf-chat-name { color: rgba(255,255,255,0.35); }
+.mf-chat-msg.ghost-msg .mf-chat-text { color: rgba(255,255,255,0.35); font-style: italic; }
+
+/* ── Vote pass-device sequential ────────────────────────── */
+.mf-ballot-preview {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1.5px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.mf-ballot-preview .mf-ballot-row {
+  animation: none; /* no stagger in preview */
+}
+
+/* ── Execution choice screen ─────────────────────────────── */
+.mf-exec-choice-bg { background: radial-gradient(ellipse 80% 80% at 50% 20%, #0a0015 0%, #030008 100%); }
+.mf-exec-choice-wrap {
+  max-width: 400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 32px 20px;
+  text-align: center;
+}
+.mf-exec-choice-title {
+  font-family: var(--mf-disp);
+  font-size: clamp(2rem, 8vw, 3rem);
+  letter-spacing: 0.06em;
+  color: var(--mf-white);
+  margin: 0;
+}
+.mf-exec-choice-role {
+  color: var(--mf-muted);
+  font-size: 1rem;
+}
+.mf-exec-choice-role strong { color: var(--mf-white); }
+.mf-exec-choice-q {
+  font-size: 1rem;
+  color: var(--mf-muted);
+  margin: 0;
+}
+.mf-exec-choice-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  align-items: center;
+}
+.mf-exec-choice-hint {
+  font-size: 0.78rem;
+  color: var(--mf-dim);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Blue button */
+.mf-btn-blue {
+  background: var(--mf-blue) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 0 #1a5acc !important;
+}
+.mf-btn-blue:hover  { transform: translateY(-3px); box-shadow: 0 7px 0 #1a5acc !important; }
+.mf-btn-blue:active { transform: translateY(3px);  box-shadow: 0 1px 0 #1a5acc !important; }
+
+/* ── Day discuss alive section label ─────────────────────── */
+.mf-alive-section { width: 100%; }
+
+/* ── Wound badge inside chips ────────────────────────────── */
+.mf-alive-chip.wounded {
+  border-color: var(--mf-wound);
+  background: rgba(255,122,0,0.12);
+  color: var(--mf-wound);
+}
+
+/* ── Target wound text ───────────────────────────────────── */
+.mf-target-wound {
+  font-size: 0.72rem;
+  color: var(--mf-wound);
+  font-weight: 700;
+}
+
+/* ── Skip vote button ────────────────────────────────────── */
+.mf-skip-vote {
+  margin-top: 8px;
+  font-size: 0.9rem !important;
+  padding: 10px 20px !important;
+  min-height: 40px !important;
+}
+
+/* ── Game over mafia row highlight ──────────────────────── */
+.mf-final-row.mafia-row { background: rgba(232,24,42,0.08); border-left: 3px solid var(--mf-red); }
+
+/* ── Role pill numbers/labels ────────────────────────────── */
+.mf-rp-num { font-family: var(--mf-disp); font-size: 2.2rem; line-height: 1; }
+.mf-rp-lbl { font-size: 0.75rem; letter-spacing: 0.12em; color: var(--mf-dim); }
+
+/* ── Partners row ────────────────────────────────────────── */
+.mf-partners-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* ── Night timer bar full width ──────────────────────────── */
+.mf-night-timer-bar { width: 100%; max-width: 320px; }
+
+/* ── Tension pulse during re-vote ────────────────────────── */
+.mf-vote-inner { animation: none; }
+.mf-phase-revote .mf-vote-inner { animation: tensionPulse 2s ease-in-out infinite; }
+@keyframes tensionPulse {
+  0%,100% { box-shadow: none; }
+  50%     { box-shadow: 0 0 30px rgba(232,24,42,0.25) inset; }
+}
+
+/* ── Execution drama additions ───────────────────────────── */
+.mf-exec-ghost {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.35);
+  font-style: italic;
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+}
+
+.mf-exec-continues {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
