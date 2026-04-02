@@ -460,6 +460,7 @@ const MafiaGame: React.FC = () => {
           phase: 'DAY_DISCUSS',
           endTime: Date.now() + DISCUSS_TIME * 1000,
           dayVotes: {}, votePassIdx: 0, reVoteCount: 0,
+          winner: null,
         });
         sfx('morning');
       }
@@ -575,6 +576,7 @@ const MafiaGame: React.FC = () => {
       roundNumber: roundNum + 1,
       eliminatedThisRound: null, woundedThisRound: null,
       chat: [],
+      winner: null,
     });
     setNightStep('waiting');
     sfx('night');

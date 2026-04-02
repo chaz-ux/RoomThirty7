@@ -7,7 +7,7 @@ import MafiaGame from './games/mafia/MafiaGame';
 import MovieGame from './games/movie/MovieGame';
 import ImposterGame from './games/imposter/ImposterGame';
 import ThirtySecondsGame from './games/30seconds/ThirtySecondsGame';
-import CharadesGame from './games/charades/CharadesGame';
+// import CharadesGame from './games/charades/CharadesGame';
 import HangmanGame from './games/hangman/HangmanGame';
 
 import Support from './pages/Support';
@@ -28,7 +28,7 @@ const App: React.FC = () => {
                         <Route path="/movie/*" element={<MovieGame />} />
                         <Route path="/imposter/*" element={<ImposterGame />} />
                         <Route path="/30seconds/*" element={<ThirtySecondsGame />} />
-                        <Route path="/charades/*" element={<CharadesGame />} />
+                        {/* <Route path="/charades/*" element={<CharadesGame />} /> */}
                         <Route path="/hangman/*" element={<HangmanGame />} />
                     </Routes>
                 </Router>
