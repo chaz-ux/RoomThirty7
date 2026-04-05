@@ -64,7 +64,7 @@ const MovieGame: React.FC = () => {
   const [gameDuration, setGameDuration] = useState(120); // seconds total
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<NodeJS.Timeout | undefined>();
 
   const isPassPlay = mode === 'local';
 

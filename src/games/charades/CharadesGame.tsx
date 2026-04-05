@@ -188,7 +188,7 @@ const CharadesGame: React.FC = () => {
   const [tiltEnabled, setTiltEnabled] = useState(false);
   const [tiltAsked, setTiltAsked] = useState(false);
   const tiltCooldown = useRef(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioCtx = useRef<AudioContext | null>(null);
 
   const s = (sharedState ?? {}) as Partial<SharedState>;

@@ -217,7 +217,7 @@ const MafiaGame: React.FC = () => {
   // kept as stub so goToNight still compiles
   const localSpectate = null;
 
-  const timerRef  = useRef<ReturnType<typeof setInterval>>();
+  const timerRef  = useRef<NodeJS.Timeout | undefined>();
   const stateRef  = useRef<Partial<SS>>({});
 
   // ── Shared state — safe defaults ───────────────────────────
