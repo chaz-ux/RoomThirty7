@@ -33,8 +33,7 @@ service cloud.firestore {
         && request.resource.data.adminNote == '';
 
       // Only your admin account can read and update
-      allow read, update: if request.auth != null
-        && request.auth.uid == 'LuL5v8i1YHVV5d0mhQLzHp9kCsL2';   // ← replace this
+      allow read, update: if request.auth != null;
 
       // Nobody can delete from the client (delete via Firebase Console if needed)
       allow delete: if false;

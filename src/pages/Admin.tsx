@@ -13,6 +13,7 @@ import app from '../firebase';
 import { summariseFeedback, FeedbackSummary, PriorityItem } from '../services/aiSummaryService';
 import { FeedbackType } from '../services/feedbackService';
 import './Admin.css';
+import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,10 +32,10 @@ interface FeedbackDoc {
 }
 
 // ─── Access gate ──────────────────────────────────────────────────────────────
-// Simple password stored in localStorage. Not cryptographic — just keeps the
-// route from being stumbled upon. Change ADMIN_PASSWORD to something you'll remember.
+// Simple password stored in .env. Not cryptographic — just keeps the
+// route from being stumbled upon. Change VITE_ADMIN_PASSWORD in .env.
 
-const ADMIN_PASSWORD = 'r37admin';   // ← change this
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'r37admin';
 
 const AccessGate: React.FC<{ onUnlock: () => void }> = ({ onUnlock }) => {
   const [pw, setPw] = useState('');
@@ -231,20 +232,39 @@ const Admin: React.FC = () => {
 
   useEffect(() => {
     if (!authed || !app) return;
-    const db = getFirestore(app);
-    const q  = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
 
-    const unsub = onSnapshot(q, snap => {
-      const items: FeedbackDoc[] = snap.docs.map(d => ({
-        id: d.id,
-        ...(d.data() as Omit<FeedbackDoc, 'id'>),
-      }));
-      setDocs(items);
-      setLoading(false);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Wait for auth state before opening the Firestore listener
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            // Sign in anonymously if no user yet
+            try {
+                await signInAnonymously(auth);
+            } catch (e) {
+                console.error('Auth failed', e);
+            }
+            return; // onAuthStateChanged will fire again once signed in
+        }
+
+        // User is now authenticated — safe to open Firestore listener
+        const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'));
+        const unsubFirestore = onSnapshot(q, snap => {
+            const items: FeedbackDoc[] = snap.docs.map(d => ({
+                id: d.id,
+                ...(d.data() as Omit<FeedbackDoc, 'id'>),
+            }));
+            setDocs(items);
+            setLoading(false);
+        });
+
+        // Cleanup Firestore listener when auth listener unmounts
+        return () => unsubFirestore();
     });
 
-    return unsub;
-  }, [authed]);
+    return () => unsubAuth();
+}, [authed]);
 
   const handleUpdate = async (id: string, data: Partial<FeedbackDoc>) => {
     if (!app) return;
