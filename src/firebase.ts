@@ -1,6 +1,7 @@
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getDatabase, Database } from "firebase/database";
 import { getAuth, Auth } from "firebase/auth";
+import { getFirestore, Firestore } from "firebase/firestore";  // ← new
 
 // TODO: Replace with your actual Firebase project configuration 
 // to enable Online Multiplayer syncing.
@@ -20,14 +21,16 @@ const firebaseConfig = {
 let app: FirebaseApp | undefined;
 let database: Database | undefined;
 let auth: Auth | undefined;
+let firestore: Firestore | undefined;  // ← new
 
 try {
     app = initializeApp(firebaseConfig);
-    database = getDatabase(app);
-    auth = getAuth(app);
+    database  = getDatabase(app);
+    auth      = getAuth(app);
+    firestore = getFirestore(app);  // ← new — used by feedback system
 } catch (e) {
     console.warn("Firebase config is incomplete. Online multiplayer won't sync until you provide your config credentials in firebase.ts!");
 }
 
-export { app, database, auth };
+export { app, database, auth, firestore };
 export default app;

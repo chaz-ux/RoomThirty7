@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Feedback collection ──────────────────────────────────────────────
+    //
+    // Players:
+    //   • Can CREATE a new feedback document (write-only, cannot read others')
+    //   • Cannot READ, UPDATE, or DELETE any feedback document
+    //
+    // Admin:
+    //   • Full read/write access when signed in with the admin UID.
+    //   • To get your admin UID:
+    //       1. Sign in to your Firebase project with Google Auth
+    //       2. Go to Firebase Console > Authentication > Users
+    //       3. Copy the UID of your admin account
+    //       4. Replace ADMIN_UID_HERE below
+    //
+    // Anonymous users (players without accounts):
+    //   • Firebase anonymous auth gives them a UID automatically.
+    //   • They can still create feedback — the rule just checks auth != null.
+
+    match /feedback/{docId} {
+
+      // Anyone authenticated (including anonymous) can submit feedback
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['type', 'text', 'game', 'uid', 'createdAt', 'resolved', 'adminNote'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 3
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.type in ['bug', 'experience', 'suggestion']
+        && request.resource.data.resolved == false
+        && request.resource.data.adminNote == '';
+
+      // Only your admin account can read and update
+      allow read, update: if request.auth != null
+        && request.auth.uid == 'LuL5v8i1YHVV5d0mhQLzHp9kCsL2';   // ← replace this
+
+      // Nobody can delete from the client (delete via Firebase Console if needed)
+      allow delete: if false;
+    }
+
+    // ── Everything else ──────────────────────────────────────────────────
+    // Your existing Realtime Database is separate — these rules only apply
+    // to Firestore (which we're adding now for feedback storage).
+    // Your Realtime Database rules are unchanged.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -28,5 +33,5 @@ dist-ssr
 # Build logs
 build_log.txt
 
-# Firebase local files (already probably there, confirm)
+# Firebase local files
 .firebase/

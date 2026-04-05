@@ -11,6 +11,8 @@ import ThirtySecondsGame from './games/30seconds/ThirtySecondsGame';
 import HangmanGame from './games/hangman/HangmanGame';
 
 import Support from './pages/Support';
+import Admin from './pages/Admin';           // ← new
+import FeedbackButton from './components/FeedbackButton';  // ← new
 
 import { ThemeProvider } from './context/ThemeContext';
 import { MultiplayerProvider } from './context/MultiplayerContext';
@@ -30,7 +32,13 @@ const App: React.FC = () => {
                         <Route path="/30seconds/*" element={<ThirtySecondsGame />} />
                         {/* <Route path="/charades/*" element={<CharadesGame />} /> */}
                         <Route path="/hangman/*" element={<HangmanGame />} />
+
+                        {/* Admin — hidden route. Change the path to something less obvious if you want. */}
+                        <Route path="/admin" element={<Admin />} />
                     </Routes>
+
+                    {/* Feedback button floats over every page except admin */}
+                    <FeedbackButton />
                 </Router>
             </MultiplayerProvider>
         </ThemeProvider>
