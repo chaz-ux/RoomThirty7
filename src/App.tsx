@@ -9,10 +9,11 @@ import ImposterGame from './games/imposter/ImposterGame';
 import ThirtySecondsGame from './games/30seconds/ThirtySecondsGame';
 // import CharadesGame from './games/charades/CharadesGame';
 import HangmanGame from './games/hangman/HangmanGame';
+import CountryGame from './games/country/CountryGame';   // ← new
 
 import Support from './pages/Support';
-import Admin from './pages/Admin';           // ← new
-import FeedbackButton from './components/FeedbackButton';  // ← new
+import Admin from './pages/Admin';
+import FeedbackButton from './components/FeedbackButton';
 
 import { ThemeProvider } from './context/ThemeContext';
 import { MultiplayerProvider } from './context/MultiplayerContext';
@@ -32,12 +33,10 @@ const App: React.FC = () => {
                         <Route path="/30seconds/*" element={<ThirtySecondsGame />} />
                         {/* <Route path="/charades/*" element={<CharadesGame />} /> */}
                         <Route path="/hangman/*" element={<HangmanGame />} />
-
-                        {/* Admin — hidden route. Change the path to something less obvious if you want. */}
+                        <Route path="/country/*" element={<CountryGame />} />  {/* ← new */}
                         <Route path="/admin" element={<Admin />} />
                     </Routes>
 
-                    {/* Feedback button floats over every page except admin */}
                     <FeedbackButton />
                 </Router>
             </MultiplayerProvider>

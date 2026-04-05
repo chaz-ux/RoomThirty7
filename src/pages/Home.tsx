@@ -18,6 +18,7 @@ const GAMES: Game[] = [
   { title: 'Guess the Movie', desc: 'Decode the emoji clues before the clock runs out.',         link: '/lobby?game=movie',      emoji: '🍿', c1: '#2979ff', c2: '#00e5ff' },
   { title: 'Imposter',        desc: 'Hunt the imposter or survive as one. Chaos guaranteed.',   link: '/lobby?game=imposter',   emoji: '🕵️', c1: '#ff6d00', c2: '#ffd600' },
   { title: '30 Seconds',      desc: '5 words. 30 seconds. Talk fast or lose everything.',       link: '/lobby?game=30seconds',  emoji: '⏱️', c1: '#00c853', c2: '#00e5ff' },
+  { title: 'Country Guesser', desc: 'Guess the country from the flag or clues. Geography rules.',link: '/lobby?game=country',    emoji: '🌍', c1: '#ff6b35', c2: '#004e89' },
   // { title: 'Charades',        desc: 'Act it out — no sounds, no words, just pure chaos.',      link: '/lobby?game=charades',   emoji: '🎬', c1: '#aa00ff', c2: '#ff1744' },
   { title: 'Hangman',         desc: "One letter at a time. Don't let the stick figure die.",   link: '/lobby?game=hangman',    emoji: '⚡', c1: '#ffd600', c2: '#ff6d00' },
 ];
