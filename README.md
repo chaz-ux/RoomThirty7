@@ -23,87 +23,117 @@ _____   ____   ____  __  __   _______ _    _ _____ _____ _______ __     __ _____
 
 ---
 
-```
-$ cat ./about.txt
+## About
 
-  ROOM 37 is a mobile-first party games PWA built for real friend groups.
-  No downloads. No accounts. Scan, join, play.
-  Local pass-and-play or online multiplayer — your room, your rules.
+**ROOM 37** is a mobile-first party games PWA built for real friend groups playing together in the same room.
+
+✅ **No downloads** — web app works instantly  
+✅ **No accounts** — scan QR code, join immediately  
+✅ **Local & Online modes** — pass-the-phone or play remotely  
+✅ **5 complete games** — Mafia, Movie, Imposter, 30 Seconds, Hangman  
+
+Built in Nairobi 🇰🇪 for global chaos.
+
+---
+
+## 🎮 The Games
+
+| Game | Description | Players | Mode |
+|------|-------------|---------|------|
+| 🎭 **Mafia** | Find the killers before they eliminate you. Deception. Logic. Betrayal. | 5–15 | Local/Online |
+| 🍿 **Guess the Movie** | Decode emoji clues before the clock runs out. | 2–10 | Local/Online |
+| 🕵️ **Imposter** | One player doesn't belong. Find them or survive as one. | 4–12 | Local |
+| ⏱️ **30 Seconds** | Describe 5 words in 30 seconds without saying the word itself. | 2–10 | Local |
+| ⚡ **Hangman** | Classic hangman. One wrong letter at a time. Ruthless. | 2–8 | Local/Online |
+
+---
+
+## ⚙️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 19 · TypeScript · Vite 7 |
+| **Styling** | CSS3 · Custom design system · Neon aesthetics |
+| **Routing** | React Router v6 |
+| **State** | Firebase Realtime Database |
+| **Auth** | Firebase Authentication |
+| **Hosting** | Firebase Hosting (CDN) |
+| **PWA** | vite-plugin-pwa · Offline support · Service Workers |
+| **Physics** | Matter.js (Imposter game) |
+| **Videos** | YouTube RSS (no API quota) |
+
+---
+
+## 📂 Project Structure
+
+```
+radiant-meteoroid/
+├── src/
+│   ├── games/
+│   │   ├── mafia/              # Social deduction game
+│   │   │   ├── MafiaGame.tsx   # Main game (1,600+ lines)
+│   │   │   └── Mafia.css       # Styling
+│   │   ├── movie/              # Emoji decode game
+│   │   ├── imposter/           # Physics-based imposter finder
+│   │   ├── 30seconds/          # Team description game
+│   │   ├── hangman/            # Word guessing game
+│   │   └── charades/           # Acting game (archived)
+│   ├── pages/
+│   │   ├── Home.tsx            # Game selection screen
+│   │   ├── Lobby.tsx           # Room setup & player join
+│   │   └── Support.tsx         # Links to YouTube & donations
+│   ├── context/
+│   │   ├── MultiplayerContext  # Shared game state & Firebase sync
+│   │   └── ThemeContext        # Dark/light mode
+│   ├── components/
+│   │   ├── NeonLogo.tsx        # Animated branding
+│   │   └── NeonLogo.css
+│   ├── hooks/
+│   │   └── useMatterDOM.ts     # Matter.js integration
+│   ├── services/
+│   │   └── youtube.ts          # RSS feed parser
+│   ├── styles/
+│   │   └── animations.css      # Global animations
+│   ├── App.tsx                 # Router & layout
+│   ├── main.tsx                # Entry point
+│   └── firebase.ts             # Firebase config
+├── public/
+│   └── offline.html            # Fallback for offline
+├── dist/                       # Build output (production)
+├── DEVELOPMENT_GUIDE.md        # Developer reference
+├── PROJECT_COMPLETION_REPORT.md # Implementation details
+├── VOTING_SYSTEM_FIX.md        # Voting mechanics documentation
+└── package.json
 ```
 
 ---
 
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  🎮  THE GAMES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+## 🚀 Getting Started
 
-| game | vibe | players |
-|------|------|---------|
-| 🎭 **Mafia** | Social deduction. Find the killers before it's too late. | 5–15 |
-| 🍿 **Guess the Movie** | Decode emoji clues before the clock hits zero. | 2–10 |
-| 🕵️ **Imposter** | One of you doesn't belong. Find them. | 4–12 |
-| ⏱️ **30 Seconds** | 5 words. 30 seconds. Describe without saying the word. | 2–10 |
-| 🎬 **Charades** | Act it out. No sounds. No words. Pure chaos. | 2–10 |
-| ⚡ **Hangman** | One wrong letter at a time. Classic. Ruthless. | 2–8 |
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Firebase account
 
----
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ⚙️  STACK
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Frontend    →  React 19 · TypeScript · Vite 7
-  Styling     →  CSS Modules · Custom design system
-  Routing     →  React Router v6
-  Realtime    →  Firebase Realtime Database
-  Auth        →  Firebase Authentication
-  Hosting     →  Firebase Hosting
-  PWA         →  vite-plugin-pwa (offline support)
-  Physics     →  Matter.js
-  Videos      →  YouTube RSS (no API key, no quota)
-```
-
----
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  🗂️  STRUCTURE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  src/
-  ├── games/          individual game implementations
-  │   ├── mafia/
-  │   ├── movie/
-  │   ├── imposter/
-  │   ├── 30seconds/
-  │   ├── charades/
-  │   └── hangman/
-  ├── pages/          Home · Lobby · Support
-  ├── context/        ThemeContext · MultiplayerContext
-  ├── hooks/          custom React hooks
-  ├── services/       youtube.ts (RSS feed)
-  └── styles/         global design system
-```
-
----
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  🚀  GETTING STARTED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
+### Install
 
 ```bash
 git clone https://github.com/chaz-ux/RoomThirty7.git
 cd RoomThirty7
 npm install
+```
+
+### Development Server
+
+```bash
 npm run dev
 ```
 
-**Firebase setup** — replace the config in `src/firebase.ts`:
+Open `http://localhost:5173` in your browser.
+
+### Firebase Configuration
+
+Create `src/firebase.ts` with your Firebase credentials:
 
 ```typescript
 const firebaseConfig = {
@@ -115,37 +145,168 @@ const firebaseConfig = {
   messagingSenderId: "YOUR_SENDER_ID",
   appId:             "YOUR_APP_ID"
 };
+
+export const app = initializeApp(firebaseConfig);
+export const db = getDatabase(app);
+export const auth = getAuth(app);
 ```
 
-**Deploy:**
+### Build & Deploy
+
 ```bash
 npm run build
 firebase deploy
 ```
 
----
-
-```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  📺  THE CHANNEL
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-<div align="center">
-
-We play these games on camera so you can play along.
-Subscribe and watch the chaos unfold.
-
-[![YouTube](https://img.shields.io/badge/Subscribe-@ROOMTHIRTY7-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@ROOMTHIRTY7)
-
-**M-Pesa Till:** `4942130` — keep the servers alive 💝
-
-</div>
+Hosted at: `https://roomthirty7-baefb.web.app`
 
 ---
 
+## 🎮 How to Play
+
+### Local Mode (Pass-the-Phone)
+1. **Host** creates a room and selects a game
+2. **Players** scan QR code and join the room
+3. **Phone is passed** around — each player sees their private view
+4. **Game progresses** with sequential turns or phases
+
+### Online Mode
+1. **Host** creates a room and shares the link
+2. **Players** join from their own devices
+3. **All see the game simultaneously** with real-time updates
+4. **Firebase syncs everything** instantly
+
+---
+
+## 🎯 Mafia Game — Complete Redesign
+
+The **Mafia** game has been completely redesigned with perfect game mechanics and transparent rules.
+
+### Game Phases
+
+```
+LOBBY
+  ↓
+ROLE_REVEAL (each player shown their secret role)
+  ↓
+NIGHT_PASS / NIGHT_ONLINE
+  └─ Mafia chooses a target to eliminate
+  └─ Doctor (if assigned) can heal one player
+  ↓
+MORNING_REVEAL (announce who died)
+  ↓
+DAY_DISCUSS (120 seconds, everyone debates)
+  ↓
+VOTE (all players vote, no skip)
+  ├─ TIE? → VOTE_REVOTE (fresh vote, skip disabled)
+  └─ NO TIE? → VOTE_REVEAL (show ballot, 4s)
+  ↓
+EXECUTION (show who was eliminated & their role)
+  ↓
+ELIMINATED_CHOICE (eliminated player chooses: stay & chat or watch silently)
+  ↓
+[Loop back to NIGHT or GAME_OVER if winner detected]
+  ↓
+GAME_OVER (declare village or mafia victory)
+```
+
+### Key Mechanics
+
+**Voting System**
+- ✅ Fully digital voting (both local & online modes)
+- ✅ Tie detection: 2+ players with same max votes → automatic re-vote
+- ✅ Re-votes are mandatory (no skip allowed)
+- ✅ Auto-lock: resolves instantly when all players vote (no timer wait)
+- ✅ Public ballot: everyone sees real-time vote counts
+
+**Player Roles**
+- 🌾 **Villager** — win by eliminating all mafia
+- 🔪 **Mafia** — win when they equal or outnumber villagers
+- 👨‍⚕️ **Doctor** (optional in larger groups) — heal one player per night
+
+**Health System**
+- 🟢 **Healthy** — takes 1 hit to die
+- 🟡 **Wounded** — takes 1 more hit to die
+- ⚫ **Dead** — can still chat if chosen
+
+**Death Mechanics**
+- Mafia can target anyone
+- Doctor can heal/protect one player
+- Wounded players take 2 hits total to die
+- Dead players choose: continue chatting or spectate silently
+
+---
+
+## 🎬 Development Notes
+
+### Game State Management
+
+All games use **Firebase Realtime Database** for shared state:
+
+```typescript
+interface SharedState {
+  phase: string;              // Current game phase
+  players: Player[];          // All players in room
+  roles: Record<string, Role>;     // Player role assignments
+  health: Record<string, Health>;  // Player status
+  // ... game-specific fields
+}
+```
+
+### Local vs Online Detection
+
+```typescript
+const mode = useMultiplayer().mode;  // 'local' | 'online'
+
+if (mode === 'local') {
+  // Pass-the-phone style (one player per turn)
+} else {
+  // All players see simultaneously with real-time updates
+}
+```
+
+### Adding New Games
+
+1. Create folder: `src/games/mygame/`
+2. Implement: `MyGameComponent.tsx` (main component)
+3. Style: `MyGame.css` (game-specific styles)
+4. Register in `Lobby.tsx` and `Home.tsx`
+5. Export from `App.tsx`
+
+---
+
+## 📺 The Channel
+
+We play these games live on **YouTube** so you can play along.
+
+**Subscribe and watch the chaos unfold**: https://www.youtube.com/@ROOMTHIRTY7
+
+**Support via M-Pesa**: Till `4942130` 💝 — keeps the servers running
+
+---
+
+## 📝 Documentation
+
+- **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** — Code architecture & patterns
+- **[PROJECT_COMPLETION_REPORT.md](./PROJECT_COMPLETION_REPORT.md)** — Implementation details
+- **[VOTING_SYSTEM_FIX.md](./VOTING_SYSTEM_FIX.md)** — Voting mechanics deep dive
+
+---
+
+## ✨ Recent Updates
+
+- ✅ **Mafia voting system** completely redesigned with tie-breaking
+- ✅ **Sequential voting** for pass-the-phone mode with "Waiting for X..." UI
+- ✅ **Team visibility** in Charades — players see their team assignment
+- ✅ **Actor rotation** — sequential cycling through all players
+- ✅ **ELIMINATED_CHOICE phase** — dead players choose stay/spectate in local mode
+
+---
+
 <div align="center">
 
-*Private project · All rights reserved · Built in Nairobi 🇰🇪*
+Built with chaos in mind. Tested with real friends. Ready for global chaos.
+
+*Private project · All rights reserved · Made in Nairobi 🇰🇪*
 
 </div>

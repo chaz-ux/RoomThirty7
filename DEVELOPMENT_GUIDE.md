@@ -1,222 +1,442 @@
-# Mafia Game — Development Guide
+# ROOM 37 — Development Guide
 
-## Code Architecture
+Complete developer reference for the Party Games PWA platform.
 
-### Component Structure
-- **Main**: `MafiaGame.tsx` (1270+ lines)
-- **Styling**: `Mafia.css` (1200+ lines)
-- **Context**: `MultiplayerContext.tsx` (manages shared state)
+---
 
-### Key Patterns
+## 📋 Table of Contents
 
-#### Phase Management
-```tsx
-type Phase = 'LOBBY' | 'ROLE_REVEAL' | 'NIGHT_PASS' | 'NIGHT_ONLINE' | 'MORNING_REVEAL' | 'DAY_DISCUSS' | 'VOTE' | 'VOTE_REVOTE' | 'VOTE_REVEAL' | 'EXECUTION' | 'GAME_OVER'
+1. [Architecture Overview](#architecture-overview)
+2. [Mafia Game Deep Dive](#mafia-game-deep-dive)
+3. [Charades Game Updates](#charades-game-updates)
+4. [State Management](#state-management)
+5. [Game Loop & Timers](#game-loop--timers)
+6. [UI Patterns](#ui-patterns)
+7. [Adding New Games](#adding-new-games)
+8. [Deployment & Testing](#deployment--testing)
+
+---
+
+## Architecture Overview
+
+### Project Stack
+
+```
+Frontend        React 19 + TypeScript + Vite 7
+Styling         CSS3 + Design System (no CSS-in-JS)
+Routing         React Router v6
+State           Firebase Realtime Database (RTDB)
+Auth            Firebase Authentication
+Hosting         Firebase Hosting + CDN
+PWA             vite-plugin-pwa + Service Workers
+Physics         Matter.js (Imposter game only)
 ```
 
-Each phase has:
-1. Conditional render block: `if (phase === 'PHASE_NAME') { return (...) }`
-2. Timer/countdown if needed
-3. Auto-advance effect when complete
-4. Local state management within phase
+### Folder Structure
 
-#### Shared State Interface
-```tsx
-interface SS {
-  phase: Phase;
-  roles: Record<string, Role>;                // 'MAFIA' | 'VILLAGER'
-  health: Record<string, Health>;             // 'healthy' | 'wounded' | 'dead'
-  revealIdx: number;                          // Role reveal progress
-  passOrder: string[];                        // Night pass order
-  passIndex: number;
-  nightActions: NightAction[];                // Night action log
-  mafiaVotes: Record<string, string>;         // Mafia voting
-  dayVotes: Record<string, string | 'skip'>; // Day voting
-  reVoteCount: number;                        // Tie-break counter
-  endTime: number;                            // Timer end timestamp
-  roundNumber: number;
-  eliminatedThisRound: string | null;
-  woundedThisRound: string | null;
-  winner: 'VILLAGERS' | 'MAFIA' | null;
-  chat: ChatMsg[];                            // Public discussion
-  ghostChat: ChatMsg[];                       // Dead player chat
-}
 ```
-
-#### Local State
-```tsx
-const [localNightPhase, setLocalNightPhase] = useState<'waiting'|'identity'|'action'|'locking'>('waiting');
-const [spectateChoice, setSpectateChoice] = useState<'playing'|'spectate'|null>(null);
-const [chatInput, setChatInput] = useState('');
-const [timeLeft, setTimeLeft] = useState(0);
+src/
+├── games/
+│   ├── mafia/
+│   │   ├── MafiaGame.tsx          (1,600+ lines - main game)
+│   │   └── Mafia.css              (styling)
+│   ├── charades/
+│   │   ├── CharadesGame.tsx       (930 lines - team-based acting)
+│   │   └── Charades.css           (styling)
+│   ├── movie/                     (emoji decode game)
+│   ├── imposter/                  (physics-based game)
+│   ├── 30seconds/                 (team description)
+│   └── hangman/                   (word guessing)
+├── pages/
+│   ├── Home.tsx                   (game selection)
+│   ├── Lobby.tsx                  (room creation/joining)
+│   └── Support.tsx                (links & donations)
+├── context/
+│   ├── MultiplayerContext.tsx     (Firebase sync + game state)
+│   └── ThemeContext.tsx           (dark/light mode)
+├── components/
+│   └── NeonLogo.tsx               (animated branding)
+├── hooks/
+│   └── useMatterDOM.ts            (Matter.js wrapper)
+├── services/
+│   └── youtube.ts                 (YouTube RSS parser)
+└── styles/
+    └── animations.css            (global keyframes)
 ```
 
 ---
 
-## Key Functions
+## Mafia Game Deep Dive
 
-### Game Initialization
-```tsx
-const startGame = async () => {
-  // Shuffle players for mafia assignment
-  // Assign roles based on player count
-  // Initialize health records
-  // Set phase to ROLE_REVEAL
-  // Reset all counters
+### Game Phases
+
+The Mafia game is completely redesigned around a crystal-clear phase model:
+
+```
+LOBBY              Everyone joins, host configures
+  ↓
+ROLE_REVEAL        Each player sees their role privately
+  ↓
+NIGHT_PASS*        Local mode: device passes, mafia votes sequentially
+  ↓
+NIGHT_ONLINE*      Online mode: digital voting with 30s timer
+  ↓
+MORNING_REVEAL     Announcement of who died + their role
+  ↓
+DAY_DISCUSS        120 seconds of debate/chat (everyone alive)
+  ↓
+VOTE               45 seconds voting (no skip allowed)
+  ├─ TIE?
+  │  ↓
+  │  VOTE_REVOTE    Fresh vote (skip disabled, no re-vote on 2nd tie)
+  │  ↓
+  │  VOTE_REVEAL    Show ballot + eliminated player
+  └─ NO TIE?
+     ↓
+     VOTE_REVEAL    Show ballot + eliminated player
+  ↓
+EXECUTION          Dramatic reveal of eliminated player
+  ↓
+ELIMINATED_CHOICE  Dead player picks: stay & chat OR watch silently
+  ↓
+[Check win conditions]
+  ├─ VILLAGERS WIN? → GAME_OVER
+  ├─ MAFIA WIN?     → GAME_OVER
+  └─ NO WINNER?     → Loop back to NIGHT_PASS/NIGHT_ONLINE
+```
+
+### Shared State Interface
+
+```typescript
+interface SS {
+  // Phase & flow
+  phase: Phase;
+  roundNumber: number;
+  
+  // Players & roles
+  players: Player[];
+  roles: Record<string, 'MAFIA' | 'VILLAGER'>;
+  health: Record<string, 'healthy' | 'wounded' | 'dead'>;
+  
+  // Voting
+  dayVotes: Record<string, string | 'skip'>;
+  reVoteCount: number;          // Increments when tie triggered
+  mafiaVotes: Record<string, string>;
+  
+  // Night phase (pass-device)
+  passOrder: string[];
+  passIndex: number;
+  nightActions: NightAction[];
+  
+  // Elimination tracking
+  eliminatedThisRound: string | null;
+  woundedThisRound: string | null;
+  
+  // Timers & revealing
+  endTime: number;              // Timestamp when phase ends
+  revealIdx: number;            // Role reveal progress
+  
+  // Outcomes
+  winner: 'VILLAGERS' | 'MAFIA' | null;
+  
+  // Chat
+  chat: ChatMsg[];              // Public discussion
+  ghostChat: ChatMsg[];         // Dead player only chat
+  
+  // Spectator choice
+  spectators: string[];         // Players who chose "watch silently"
+  localSpectate: 'stay' | 'spectate' | null;
+  
+  // Sequential voting (pass-device mode)
+  currentVoter: string | null;  // Who's currently voting
 }
 ```
 
-### Win Checking
-```tsx
-const checkWin = (h: Record<string, Health>): 'VILLAGERS' | 'MAFIA' | null => {
-  const aM = /* count alive mafia */
-  const aV = /* count alive villagers */
-  if (aM === 0) return 'VILLAGERS';  // All mafia dead
-  if (aM >= aV) return 'MAFIA';      // Mafia >= villagers
-  return null;
-}
-```
+### Key Functions
 
-### Vote Resolution
-```tsx
+**Vote Resolution with Tie Detection**
+```typescript
 const resolveVotesFromState = useCallback(async (
-  dv: Record<string, string | 'skip'>,   // day votes
-  h: Record<string, Health>,              // current health
-  isRevote: boolean = false               // is this a re-vote?
+  dv: Record<string, string | 'skip'>,
+  h: Record<string, Health>,
+  isRevote: boolean = false
 ) => {
-  // Count non-skip votes
-  // Find max vote recipient
-  // Check for tie: multiple players with same max
-  // On tie: transition to VOTE_REVOTE, clear dayVotes, increment reVoteCount
-  // On no-tie: eliminate player, show VOTE_REVEAL
+  // Count votes (excluding 'skip')
+  const counted = Object.entries(dv)
+    .filter(([_, v]) => v && v !== 'skip')
+    .reduce((acc, [_, v]) => ({ ...acc, [v]: (acc[v] ?? 0) + 1 }), {} as Record<string, number>)
+  
+  // Find max votes
+  const maxVotes = Math.max(...Object.values(counted), 0)
+  const tied = Object.entries(counted).filter(([_, count]) => count === maxVotes)
+  
+  if (tied.length > 1) {
+    // TIE! Go to re-vote
+    if (!isRevote) {
+      await setSharedState({
+        phase: 'VOTE_REVOTE',
+        dayVotes: {},
+        reVoteCount: reVoteCount + 1
+      })
+    }
+  } else {
+    // NO TIE: Eliminate the player
+    const eliminated = tied[0][0]
+    await setSharedState({
+      phase: 'VOTE_REVEAL',
+      eliminatedThisRound: eliminated
+    })
+  }
+}, [reVoteCount, setSharedState])
+```
+
+**Win Condition Check**
+```typescript
+const checkWin = (h: Record<string, Health>) => {
+  const aliveM = Object.entries(h).filter(
+    ([id, health]) => health !== 'dead' && roles[id] === 'MAFIA'
+  ).length
+  
+  const aliveV = Object.entries(h).filter(
+    ([id, health]) => health !== 'dead' && roles[id] !== 'MAFIA'
+  ).length
+  
+  if (aliveM === 0) return 'VILLAGERS'
+  if (aliveM >= aliveV) return 'MAFIA'
+  return null
 }
 ```
 
-### Night Resolution
+**Health Damage System**
+```typescript
+// Mafia target someone
+const newHealth = { ...h }
+if (h[target] === 'healthy') {
+  newHealth[target] = 'wounded'
+} else if (h[target] === 'wounded') {
+  newHealth[target] = 'dead'
+}
+
+// Doctor heals
+newHealth[healed] = 'healthy'
+```
+
+---
+
+## Charades Game Updates
+
+### Recent Enhancements (April 2026)
+
+**Team System**
+- Teams randomly assigned at game start
+- Each player sees their team in HUDDLE phase
+- Teams score independently
+- Game ends when all players have acted once
+
+**Actor Rotation**
+- Sequential cycling through players (not random)
+- `playersWhoActed` array tracks completion
+- `totalRounds` set to player count
+- Game transitions to FINAL_SCORE when everyone has acted
+
+### State Interface
+
+```typescript
+interface SS {
+  // ... other fields
+  playerTeams: Record<string, 'red' | 'blue'>;  // Persistent team assignment
+  playersWhoActed: string[];                      // Tracks who has performed
+  totalRounds: number;                            // Total number of rounds (= player count)
+  currentTeam: 'red' | 'blue';                   // Which team's turn
+  activePlayerId: string;                        // Current actor
+  roundNumber: number;                           // Current round (1 to totalRounds)
+}
+```
+
+### Team Display
+
+In HUDDLE phase, player sees:
 ```tsx
-const resolveNightOnline = useCallback(async (
-  mVotes: Record<string, string>,    // mafia votes
-  currentHealth: Record<string, Health>
-) => {
-  // Count mafia votes
-  // Require majority (floor(count/2) + 1)
-  // Apply wound or elimination
-  // Auto-advance to MORNING_REVEAL
+<div className="cr-my-team-badge">
+  {myTeam === 'red' ? '🔴 RED TEAM' : '🔵 BLUE TEAM'}
+</div>
+```
+
+---
+
+## State Management
+
+### Firebase Realtime Database Pattern
+
+All games share a single Firebase RTDB collection per room:
+
+```
+/rooms/{roomId}/
+├── mode: 'local' | 'online'
+├── host: string (playerId)
+├── players: Player[]
+├── game: string ('mafia' | 'movie' | 'imposter' | '30seconds' | 'hangman')
+└── state: SharedState (game-specific fields)
+```
+
+### MultiplayerContext Usage
+
+```typescript
+const { players, sharedState, setSharedState, isHost, currentPlayerId, mode } = 
+  useMultiplayer()
+
+// Reading state
+const phase = sharedState?.phase ?? 'LOBBY'
+const myRole = sharedState?.roles[currentPlayerId] ?? null
+
+// Updating state (async)
+await setSharedState({
+  phase: 'NIGHT_PASS',
+  dayVotes: {},
+  reVoteCount: 0
 })
 ```
 
+### Local Component State
+
+Keep per-component state separate from shared state:
+
+```typescript
+// Component-level (not synced)
+const [timeLeft, setTimeLeft] = useState(0)          // Timer display
+const [chatInput, setChatInput] = useState('')       // Form input
+const [selected, setSelected] = useState<string | null>(null)  // UI selection
+```
+
+### State Resets at Phase Boundaries
+
+**When entering DAY_DISCUSS:**
+```typescript
+dayVotes: {}
+reVoteCount: 0
+chat: []
+```
+
+**When entering NIGHT:**
+```typescript
+mafiaVotes: {}
+dayVotes: {}
+nightActions: []
+passIndex: 0
+```
+
 ---
 
-## Important State Resets
+## Game Loop & Timers
 
-### When Entering DAY_DISCUSS
-```tsx
-dayVotes: {}              // Fresh ballot
-reVoteCount: 0           // Tie counter resets
-```
+### Timer System
 
-### When Entering NIGHT (either mode)
-```tsx
-mafiaVotes: {}           // Clear mafia votes
-dayVotes: {}             // Clear day votes
-nightActions: []         // Clear night log
-chat: []                 // Clear discussion
-passIndex: 0             // Reset device pass
-```
-
-### When Starting New Game
-```tsx
-const newHealth: Record<string, Health> = {}
-const newRoles: Record<string, Role> = {}
-players.forEach(p => newHealth[p.id] = 'healthy')
-```
-
----
-
-## Timer System
-
-### Phases That Need Timer
-- `DAY_DISCUSS` (DISCUSS_TIME = 120s)
-- `VOTE` (VOTE_TIME = 45s)
-- `VOTE_REVOTE` (VOTE_TIME = 45s)
-- `NIGHT_ONLINE` (NIGHT_TIME = 30s)
+Phases with timers:
+- `DAY_DISCUSS`: 120 seconds (auto-advance to VOTE)
+- `VOTE`: 45 seconds (auto-resolve when all voted OR timer expires)
+- `VOTE_REVOTE`: 45 seconds (same as VOTE)
+- `NIGHT_ONLINE`: 30 seconds (auto-advance to MORNING_REVEAL)
+- `MORNING_REVEAL`: 5 seconds (auto-advance to DAY_DISCUSS)
+- `VOTE_REVEAL`: 4 seconds (auto-advance to EXECUTION)
+- `EXECUTION`: 4 seconds (auto-advance to GAME_OVER or ELIMINATED_CHOICE)
 
 ### Auto-Lock Voting
-When all alive players have voted in VOTE or VOTE_REVOTE:
-```tsx
-const votedCount = Object.keys(latest.dayVotes).length;
-const aliveCount = latest.alive.length;
-if (votedCount >= aliveCount) {
-  resolveVotesFromState(...)  // Resolve immediately
-}
-```
 
-### Timer Tick Pattern
-```tsx
+When all alive players have voted in VOTE/VOTE_REVOTE:
+
+```typescript
 useEffect(() => {
-  const needsTimer = /* phase check */
-  if (!needsTimer) return
-  
   const tick = () => {
-    const rem = Math.ceil((endTime - Date.now()) / 1000)
-    setTimeLeft(rem)
+    const alive = players.filter(p => health[p.id] !== 'dead')
+    const voted = Object.keys(dayVotes).length
     
-    // Check auto-lock
-    // Check timer expiry
-    // Resolve accordingly
+    if (voted >= alive.length && phase === 'VOTE') {
+      resolveVotesFromState(dayVotes, health, false)
+    }
   }
   
-  tick()  // Run immediately
-  const interval = setInterval(tick, 300)  // Poll every 300ms
+  const interval = setInterval(tick, 300)
   return () => clearInterval(interval)
-}, [phase, endTime])
+}, [phase, dayVotes, players, health, setSharedState])
+```
+
+### Timer Display
+
+```typescript
+const timerPercent = Math.max(0, 
+  ((endTime - Date.now()) / (PHASE_TIME * 1000)) * 100
+)
+
+const isUrgent = timeLeft < 5  // < 5 seconds left
 ```
 
 ---
 
 ## UI Patterns
 
-### Phase Header
-Every phase should start with:
+### Phase Header (Standard Pattern)
+
+Every major phase should display:
+
 ```tsx
 <div className="mf-phase-header">
-  <h2 className="mf-phase-title">🎯 PHASE NAME</h2>
-  <p className="mf-phase-hint">Clear explanation of what to do</p>
+  <div className="mf-phase-instruct">
+    <span className="mf-phase-instruct-icon">🎯</span>
+    <h2>PHASE TITLE</h2>
+    <p>Clear instruction or hint</p>
+  </div>
 </div>
 ```
 
-### Vote Count Display
-```tsx
-const voteCountsDay: Record<string, number> = {}
-Object.values(dayVotes).forEach(v => {
-  if (v && v !== 'skip') voteCountsDay[v] = (voteCountsDay[v] ?? 0) + 1
-})
-// Display: {vc > 0 && <span className="mf-vote-dot">{vc}</span>}
+CSS for phase header:
+```css
+.mf-phase-header {
+  background: linear-gradient(135deg, rgba(14,165,233,0.2), transparent);
+  border-top: 2px solid var(--mf-green);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 0.5rem;
+}
 ```
 
-### Timer Visual
+### Vote Grid Layout
+
+For voting displays:
+
 ```tsx
-const timerPct = Math.max(0, ((endTime - Date.now()) / (PHASE_TIME * 1000)) * 100)
-<div className="mf-timer-track">
-  <div className={`mf-timer-fill ${urgent ? 'urgent' : ''}`}
-    style={{ width: `${timerPct}%` }} />
+<div className="mf-vote-grid">
+  {players.map(p => (
+    <div key={p.id} className={`mf-vote-player ${selected === p.id ? 'selected' : ''}`}>
+      <button onClick={() => handleVote(p.id)}>
+        {p.name}
+        {voteCount > 0 && <span className="mf-vote-dot">{voteCount}</span>}
+      </button>
+    </div>
+  ))}
 </div>
 ```
 
 ### Chat Pattern
+
 ```tsx
-{!isPassPlay && spectateChoice !== 'spectate' && (
+{!spectating && (
   <div className="mf-chat-panel">
     {/* Feed */}
-    {chat.map((m, i) => (
-      <div key={i} className={`mf-chat-msg ${health[m.playerId] === 'dead' ? 'dead-player' : ''}`}>
-        <span className="mf-chat-name">{sender?.name} {isDead && '👻'}</span>
-        <span className="mf-chat-text">{m.text}</span>
-      </div>
-    ))}
+    <div className="mf-chat-feed">
+      {chat.map((msg, i) => (
+        <div key={i} className={`mf-chat-msg ${isDead(msg.playerId) ? 'dead' : ''}`}>
+          <span className="mf-chat-name">{names[msg.playerId]}</span>
+          <span className="mf-chat-text">{msg.text}</span>
+        </div>
+      ))}
+    </div>
     {/* Input */}
     <form onSubmit={sendChat}>
-      <input value={chatInput} onChange={e => setChatInput(e.target.value)} />
+      <input 
+        value={chatInput} 
+        onChange={e => setChatInput(e.target.value)}
+        placeholder="Say something..."
+      />
       <button type="submit">→</button>
     </form>
   </div>
@@ -225,140 +445,210 @@ const timerPct = Math.max(0, ((endTime - Date.now()) / (PHASE_TIME * 1000)) * 10
 
 ---
 
-## CSS Architecture
+## Adding New Games
 
-### Theme Variables
-```css
---mf-bg:        #060408      /* Dark background */
---mf-red:       #e8182a      /* Mafia/danger */
---mf-green:     #00e887      /* Villager/success */
---mf-amber:     #f5a623      /* Secondary action */
---mf-blue:      #3d8bff      /* Info */
---mf-wound:     #ff7a00      /* Wounded state */
---mf-white:     #ffffff      /* Text */
---mf-muted:     rgba(255,255,255,0.5)
---mf-dim:       rgba(255,255,255,0.25)
---mf-surface:   rgba(255,255,255,0.05)
---mf-border:    rgba(255,255,255,0.08)
+### Step 1: Create Game Structure
+
+```
+src/games/mygame/
+├── MyGameComponent.tsx   (main React component)
+├── MyGame.css           (game styling)
+└── README.md            (game rules)
 ```
 
-### Component Modifiers
-```css
-.mf-target-btn.selected { /* Player tapped this button */ }
-.mf-target-btn.wounded  { /* Target is wounded */ }
-.mf-chat-msg.dead-player { /* Dead player message */ }
-.mf-timer-fill.urgent   { /* Timer < 5s */ }
+### Step 2: Implement Component Template
+
+```typescript
+import React, { useState, useEffect } from 'react'
+import { useMultiplayer } from '../../context/MultiplayerContext'
+import './MyGame.css'
+
+type Phase = 'LOBBY' | 'PLAYING' | 'RESULTS'
+
+interface MyGameState {
+  phase: Phase
+  players: Player[]
+  scores: Record<string, number>
+  // ... your fields
+}
+
+const MyGame: React.FC = () => {
+  const { players, sharedState, setSharedState, isHost, mode } = useMultiplayer()
+  
+  const s = (sharedState ?? {}) as Partial<MyGameState>
+  const phase = s.phase ?? 'LOBBY'
+  
+  // LOBBY
+  if (phase === 'LOBBY') {
+    return (
+      <div className="my-root">
+        {isHost && (
+          <button onClick={() => setSharedState({ phase: 'PLAYING' })}>
+            Start Game
+          </button>
+        )}
+      </div>
+    )
+  }
+  
+  // PLAYING
+  if (phase === 'PLAYING') {
+    return (
+      <div className="my-root my-playing">
+        {/* Your game UI */}
+      </div>
+    )
+  }
+  
+  // RESULTS
+  if (phase === 'RESULTS') {
+    return (
+      <div className="my-root my-results">
+        {/* Scores & rankings */}
+      </div>
+    )
+  }
+  
+  return null
+}
+
+export default MyGame
 ```
 
----
+### Step 3: Register in App.tsx
 
-## Common Issues & Solutions
+```typescript
+import MyGame from './games/mygame/MyGameComponent'
 
-### Issue: State not updating in components
-**Solution**: Always use `await setSharedState(...)` and check `stateRef.current` in timers
+<Route path="/mygame/*" element={<MyGame />} />
+```
 
-### Issue: Votes not counting correctly
-**Solution**: Filter out 'skip' votes before counting: `if (v && v !== 'skip')`
+### Step 4: Add to Lobby.tsx & Home.tsx
 
-### Issue: Dead players breaking UI
-**Solution**: Check `health[p.id] === 'dead'` before rendering interaction elements
+```typescript
+const GAME_BUTTONS = [
+  // ... existing games
+  { title: 'My Game', desc: 'Game description', emoji: '🎮', link: '/lobby?game=mygame' }
+]
+```
 
-### Issue: Timer running during phase transitions
-**Solution**: Check `phase` in timer useEffect cleanup and return early if wrong phase
+### Step 5: Implement Core Gameplay
 
-### Issue: Eliminated player still voting
-**Solution**: Use `!isDead && !myVote` conditions before showing vote buttons
-
----
-
-## Adding New Features
-
-### To Add a New Phase:
-1. Add to `Phase` type union
-2. Add phase header section in render
-3. Add conditional render: `if (phase === 'NEW_PHASE')`
-4. Handle timer if needed
-5. Add state transition from previous phase
-6. Add CSS styling for `.mf-new-phase-*` classes
-
-### To Add a New Role:
-1. Update `type Role` union
-2. Update `getMafiaCount()` if needed
-3. Add role-specific action in night phase
-4. Add role reveal styling
-5. Add to final scoreboard
-6. Test win conditions
-
-### To Add Spectator Features:
-1. Add to `spectateChoice` state handling
-2. Check `spectateChoice !== 'spectate'` in chat
-3. Add CSS for spectator styling
-4. Update phase access rules
+- Define your phase model
+- Implement state transitions
+- Add player interactions
+- Keep local state separate from shared state
+- Test timer/auto-advance logic
 
 ---
 
-## Performance Notes
+## Deployment & Testing
 
-- Component renders on every shared state change
-- Timer ticks 3x per second (300ms interval)
-- No expensive re-computations
-- Chat limited to last 15 messages shown
-- Total bundle size: ~686 kB (acceptably large for feature-rich game)
+### Build Pipeline
 
----
+```bash
+# Development
+npm run dev              # Start Vite dev server (localhost:5173)
 
-## Testing Strategy
+# Build
+npm run build           # Create optimized dist/ bundle
 
-### Manual Testing
-1. Create 5+ player room
-2. Test each phase transition
-3. Trigger tie scenarios
-4. Test elimination choices
-5. Test chat with dead players
-6. Test both local and online modes
+# Deploy
+firebase deploy         # Deploy to Firebase Hosting
+```
 
-### Edge Cases
-- Min 3 players (game still works)
-- Max players (no limit imposed)
-- All mafia elected (game ends)
-- All villagers die (game ends)
-- Player disconnects mid-game (handled by multiplayer context)
+### Pre-Deployment Checklist
 
----
-
-## Future Refactoring Ideas
-
-1. **Extract phase components** into separate files for better organization
-2. **Use reducer for state** instead of scattered setSharedState calls
-3. **Create phase interface** for consistent structure
-4. **Separate sound/vibration** into utility module
-5. **Component composition** for vote grids, timer displays, etc.
-
----
-
-## Deployment Checklist
-
-- [ ] Run `npm run build` successfully
+- [ ] `npm run build` completes with 0 errors
+- [ ] All 75 modules transform successfully
+- [ ] PWA service worker generated
 - [ ] No console errors/warnings
-- [ ] Test all phases work
-- [ ] Timer accuracy verified
-- [ ] State resets between games
-- [ ] Chat works in both modes
-- [ ] Eliminated player choice respected
-- [ ] Mobile responsive (check on phone)
-- [ ] PWA works offline
-- [ ] Service worker updates properly
+- [ ] Test all game phases locally
+- [ ] Verify timers are accurate
+- [ ] Test state resets between games
+- [ ] Mobile responsiveness verified
+- [ ] Offline PWA functionality works
+- [ ] Firebase config is correct
+
+### Testing Strategy
+
+**Manual Testing Per Game:**
+1. Create lobby
+2. Add min & max players
+3. Test each phase transition
+4. Test early skip (where applicable)
+5. Test elimination/scoring
+6. Verify winner detection
+7. Test reset for new round
+
+**Edge Cases:**
+- Min player count (too few to win)
+- Max player count (no limit)
+- Player disconnect mid-game
+- Timer expiry (should auto-advance)
+- Chat with dead/spectating players
+- Rapid repeated votes
+
+---
+
+## Performance Considerations
+
+- **Bundle Size**: ~670 kB minified JS, ~124 kB minified CSS
+- **Render Optimization**: Component re-renders on shared state change
+- **Timer Polling**: 300ms interval (not 16ms) to reduce CPU
+- **Firebase Sync**: Real-time listeners (no polling needed)
+- **PWA Cache**: Service worker caches all assets + API responses
+
+---
+
+## Common Patterns
+
+### Check if Player is Alive
+
+```typescript
+const isDead = health[playerId] === 'dead'
+const isAlive = health[playerId] !== 'dead'
+```
+
+### Get Player Name
+
+```typescript
+const player = players.find(p => p.id === playerId)
+const name = player?.name ?? 'Unknown'
+```
+
+### Filter by Condition
+
+```typescript
+const alivePlayers = players.filter(p => health[p.id] !== 'dead')
+const mafiaPlayers = Object.entries(roles)
+  .filter(([_, role]) => role === 'MAFIA')
+  .map(([id]) => id)
+```
+
+### Check if I'm the Host
+
+```typescript
+const amHost = isHost
+if (amHost) {
+  // Show host controls
+}
+```
 
 ---
 
 ## Resources
 
-- **Mafia Rules**: [Wikipedia Mafia]
-- **Game Design**: [GAME_FLOW_REDESIGN.md](./GAME_FLOW_REDESIGN.md)
-- **Voting Fix**: [VOTING_SYSTEM_FIX.md](./VOTING_SYSTEM_FIX.md)
-- **Context**: [MultiplayerContext.tsx](./src/context/MultiplayerContext.tsx)
+- **Project README**: [README.md](./README.md)
+- **Voting System Details**: [VOTING_SYSTEM_FIX.md](./VOTING_SYSTEM_FIX.md)
+- **Game Flow Details**: [GAME_FLOW_REDESIGN.md](./GAME_FLOW_REDESIGN.md)
+- **Completion Report**: [PROJECT_COMPLETION_REPORT.md](./PROJECT_COMPLETION_REPORT.md)
+- **Firebase Docs**: https://firebase.google.com/docs
+- **React Hooks**: https://react.dev/reference/react
 
 ---
 
-**Last Updated**: April 1, 2026  
-**Version**: 2.0 (Comprehensive Game Flow Redesign)
+**Last Updated**: April 5, 2026  
+**Version**: 3.0 (Comprehensive with Charades updates)  
+**Status**: Production Ready ✅
+
