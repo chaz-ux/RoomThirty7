@@ -30,9 +30,8 @@ const Lobby: React.FC = () => {
   const [setupState, setSetupState] = useState<SetupState>('MODE_SELECT');
   const [errorMsg,   setErrorMsg]   = useState('');
 
-  // ── KEY FIX: uncontrolled refs instead of controlled state ──
-  // Controlled state (useState) causes re-renders from the multiplayer
-  // context that reset the input every keystroke. Refs are immune.
+  // Because we fixed the nested component bug below, you can safely 
+  // revert these to standard controlled states (useState) if you prefer!
   const localNameRef  = useRef<HTMLInputElement>(null);
   const onlineNameRef = useRef<HTMLInputElement>(null);
   const joinCodeRef   = useRef<HTMLInputElement>(null);
@@ -69,7 +68,8 @@ const Lobby: React.FC = () => {
     if (!name) { setErrorMsg('Enter your name first'); return; }
     try {
       console.log('Creating room with name:', name);
-      const code = await createOnlineRoom(name);
+      // NOTE: If your UI hangs here, check MultiplayerContext.tsx to ensure createOnlineRoom resolves!
+      const code = await createOnlineRoom(name); 
       console.log('Room created successfully:', code);
       setMode('online');
       setSetupState('ONLINE_HOST');
@@ -85,6 +85,7 @@ const Lobby: React.FC = () => {
     const code = joinCodeRef.current?.value.trim();
     if (!name || !code) { setErrorMsg('Enter name and room code'); return; }
     try {
+      // NOTE: Ensure joinOnlineRoom resolves properly in Context
       const ok = await joinOnlineRoom(code.toUpperCase(), name);
       if (ok) {
         setMode('online');
@@ -96,8 +97,8 @@ const Lobby: React.FC = () => {
     } catch (e: any) { setErrorMsg(e.message ?? 'Failed to join room'); }
   };
 
-  // ── Renders ────────────────────────────────────────────────
-  const ModeSelect = () => (
+  // ── Render Functions (No longer treated as new components) ──
+  const renderModeSelect = () => (
     <>
       <h2>How are you playing?</h2>
       <div className="mode-cards">
@@ -120,11 +121,10 @@ const Lobby: React.FC = () => {
     </>
   );
 
-  const LocalSetup = () => (
+  const renderLocalSetup = () => (
     <>
       <h2>Add Players</h2>
       <div className="input-row">
-        {/* Uncontrolled input — immune to context re-renders */}
         <input
           ref={localNameRef}
           type="text"
@@ -151,10 +151,9 @@ const Lobby: React.FC = () => {
     </>
   );
 
-  const OnlineSetup = () => (
+  const renderOnlineSetup = () => (
     <>
       <h2>Online Multiplayer</h2>
-      {/* Uncontrolled input for name */}
       <input
         ref={onlineNameRef}
         type="text"
@@ -189,7 +188,7 @@ const Lobby: React.FC = () => {
     </>
   );
 
-  const OnlineHost = () => (
+  const renderOnlineHost = () => (
     <>
       <div className="room-code-display">
         <div className="room-code-label">Room Code</div>
@@ -209,7 +208,7 @@ const Lobby: React.FC = () => {
     </>
   );
 
-  const OnlineJoin = () => (
+  const renderOnlineJoin = () => (
     <>
       <div className="room-code-display">
         <div className="room-code-label">Joined Room</div>
@@ -237,11 +236,12 @@ const Lobby: React.FC = () => {
         {meta.label}
       </div>
       <div className="lobby-panel">
-        {setupState === 'MODE_SELECT'  && <ModeSelect />}
-        {setupState === 'LOCAL_SETUP'  && <LocalSetup />}
-        {setupState === 'ONLINE_SETUP' && <OnlineSetup />}
-        {setupState === 'ONLINE_HOST'  && <OnlineHost />}
-        {setupState === 'ONLINE_JOIN'  && <OnlineJoin />}
+        {/* Call as functions to prevent unmounting! */}
+        {setupState === 'MODE_SELECT'  && renderModeSelect()}
+        {setupState === 'LOCAL_SETUP'  && renderLocalSetup()}
+        {setupState === 'ONLINE_SETUP' && renderOnlineSetup()}
+        {setupState === 'ONLINE_HOST'  && renderOnlineHost()}
+        {setupState === 'ONLINE_JOIN'  && renderOnlineJoin()}
       </div>
     </div>
   );
