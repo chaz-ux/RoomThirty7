@@ -30,7 +30,7 @@ _____   ____   ____  __  __   _______ _    _ _____ _____ _______ __     __ _____
 ✅ **No downloads** — web app works instantly  
 ✅ **No accounts** — scan QR code, join immediately  
 ✅ **Local & Online modes** — pass-the-phone or play remotely  
-✅ **5 complete games** — Mafia, Movie, Imposter, 30 Seconds, Hangman  
+✅ **6 complete games** — Mafia, Movie, Imposter, 30 Seconds, Country Guesser, Hangman  
 
 Built in Nairobi 🇰🇪 for global chaos.
 
@@ -44,6 +44,7 @@ Built in Nairobi 🇰🇪 for global chaos.
 | 🍿 **Guess the Movie** | Decode emoji clues before the clock runs out. | 2–10 | Local/Online |
 | 🕵️ **Imposter** | One player doesn't belong. Find them or survive as one. | 4–12 | Local |
 | ⏱️ **30 Seconds** | Describe 5 words in 30 seconds without saying the word itself. | 2–10 | Local |
+| 🌍 **Country Guesser** | Identify countries from emoji clues about culture, food, landmarks. | 2–10 | Local/Online |
 | ⚡ **Hangman** | Classic hangman. One wrong letter at a time. Ruthless. | 2–8 | Local/Online |
 
 ---
@@ -74,6 +75,7 @@ radiant-meteoroid/
 │   │   │   ├── MafiaGame.tsx   # Main game (1,600+ lines)
 │   │   │   └── Mafia.css       # Styling
 │   │   ├── movie/              # Emoji decode game
+│   │   ├── country/            # Emoji geography game
 │   │   ├── imposter/           # Physics-based imposter finder
 │   │   ├── 30seconds/          # Team description game
 │   │   ├── hangman/            # Word guessing game
