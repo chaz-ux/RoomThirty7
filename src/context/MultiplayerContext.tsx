@@ -66,7 +66,10 @@ export const MultiplayerProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
 
     const createOnlineRoom = async (hostName: string) => {
-        if (!database) throw new Error("Firebase database not initialized. Check firebase.ts");
+        if (!database) {
+            console.error('❌ Database not initialized', { database });
+            throw new Error("Firebase database not initialized. Check firebase.ts");
+        }
         
         const code = generateRoomCode();
         const hostId = 'p-' + generateId();
@@ -74,11 +77,15 @@ export const MultiplayerProvider: React.FC<{ children: ReactNode }> = ({ childre
         
         const hostPlayer: Player = { id: hostId, name: hostName, isHost: true };
         
+        console.log('📝 Creating room:', { code, hostId, hostName });
+        
         await set(roomRef, {
             createdAt: Date.now(),
             players: { [hostId]: hostPlayer },
             gameState: {}
         });
+
+        console.log('✅ Room created successfully:', code);
 
         // Delete room when host disconnects
         onDisconnect(roomRef).remove().catch(() => {});

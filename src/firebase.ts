@@ -7,13 +7,13 @@ import { getFirestore, Firestore } from "firebase/firestore";  // ← new
 // to enable Online Multiplayer syncing.
 // See: https://firebase.google.com/docs/web/setup#config-object
 const firebaseConfig = {
-    apiKey: "API_KEY",
-    authDomain: "roomthirty7-baefb.firebaseapp.com",
-    databaseURL: "https://roomthirty7-baefb.firebaseio.com",
-    projectId: "roomthirty7-baefb",
-    storageBucket: "roomthirty7-baefb.appspot.com",
-    messagingSenderId: "SENDER_ID",
-    appId: "APP_ID"
+    apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    databaseURL:       import.meta.env.VITE_FIREBASE_DATABASE_URL,
+    projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // We wrap initialization in a try-catch so the app doesn't crash 
@@ -28,7 +28,9 @@ try {
     database  = getDatabase(app);
     auth      = getAuth(app);
     firestore = getFirestore(app);  // ← new — used by feedback system
+    console.log('✅ Firebase initialized successfully');
 } catch (e) {
+    console.error("❌ Firebase initialization failed:", e);
     console.warn("Firebase config is incomplete. Online multiplayer won't sync until you provide your config credentials in firebase.ts!");
 }
 

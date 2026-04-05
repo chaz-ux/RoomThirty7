@@ -8,6 +8,7 @@ const GAME_META: Record<string, { emoji: string; label: string }> = {
   movie:       { emoji: '🍿', label: 'Guess the Movie' },
   imposter:    { emoji: '🕵️', label: 'Imposter' },
   '30seconds': { emoji: '⏱️', label: '30 Seconds' },
+  country:     { emoji: '🌍', label: 'Country Guesser' },
   charades:    { emoji: '🎬', label: 'Charades' },
   hangman:     { emoji: '⚡', label: 'Hangman' },
 };
@@ -67,10 +68,16 @@ const Lobby: React.FC = () => {
     const name = onlineNameRef.current?.value.trim();
     if (!name) { setErrorMsg('Enter your name first'); return; }
     try {
-      await createOnlineRoom(name);
+      console.log('Creating room with name:', name);
+      const code = await createOnlineRoom(name);
+      console.log('Room created successfully:', code);
+      setMode('online');
       setSetupState('ONLINE_HOST');
       setErrorMsg('');
-    } catch (e: any) { setErrorMsg(e.message ?? 'Failed to create room'); }
+    } catch (e: any) {
+      console.error('Failed to create room:', e);
+      setErrorMsg(e.message ?? 'Failed to create room');
+    }
   };
 
   const handleJoinRoom = async () => {
@@ -79,8 +86,13 @@ const Lobby: React.FC = () => {
     if (!name || !code) { setErrorMsg('Enter name and room code'); return; }
     try {
       const ok = await joinOnlineRoom(code.toUpperCase(), name);
-      if (ok) { setSetupState('ONLINE_JOIN'); setErrorMsg(''); }
-      else setErrorMsg('Room not found!');
+      if (ok) {
+        setMode('online');
+        setSetupState('ONLINE_JOIN');
+        setErrorMsg('');
+      } else {
+        setErrorMsg('Room not found!');
+      }
     } catch (e: any) { setErrorMsg(e.message ?? 'Failed to join room'); }
   };
 
