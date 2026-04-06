@@ -71,15 +71,30 @@ export const MultiplayerProvider: React.FC<{ children: ReactNode }> = ({ childre
             throw new Error("Firebase database not initialized. Check firebase.ts");
         }
         
-        const code = generateRoomCode();
-        const hostId = 'p-' + generateId();
-        const roomRef = ref(database, `rooms/${code}`);
+        let code = '';
+        let isUnique = false;
+        let roomRef;
+
+        // Keep generating a code until we find one that is empty
+        while (!isUnique) {
+            code = generateRoomCode();
+            roomRef = ref(database, `rooms/${code}`);
+            const snapshot = await get(roomRef);
+            
+            if (!snapshot.exists()) {
+                isUnique = true; // We found an empty slot!
+            } else {
+                console.warn(`Collision detected for code ${code}, rolling again...`);
+            }
+        }
         
+        const hostId = 'p-' + generateId();
         const hostPlayer: Player = { id: hostId, name: hostName, isHost: true };
         
-        console.log('📝 Creating room:', { code, hostId, hostName });
+        console.log('📝 Creating unique room:', { code, hostId, hostName });
         
-        await set(roomRef, {
+        // Now it is 100% safe to set the data
+        await set(roomRef!, {
             createdAt: Date.now(),
             players: { [hostId]: hostPlayer },
             gameState: {}
@@ -87,8 +102,7 @@ export const MultiplayerProvider: React.FC<{ children: ReactNode }> = ({ childre
 
         console.log('✅ Room created successfully:', code);
 
-        // Delete room when host disconnects
-        onDisconnect(roomRef).remove().catch(() => {});
+        onDisconnect(roomRef!).remove().catch(() => {});
 
         setModeState('online');
         setRoomCode(code);
